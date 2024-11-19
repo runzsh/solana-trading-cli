@@ -24,18 +24,20 @@ export async function sell(
 ) {
   try {
     const decimals = await getDecimals(new PublicKey(tokenToSell));
-    console.log(decimals);
+    // console.log(decimals);
     const convertedAmountOfTokenOut = await convertToInteger(
       amountOfTokenToSell,
       decimals
     );
-    console.log(convertedAmountOfTokenOut);
+    console.log("Amount of Token to Sell: %f", amountOfTokenToSell);
     const quoteResponse = await getQuote(
       tokenToSell,
       wsol,
       convertedAmountOfTokenOut,
       slippage
     );
+    console.log("Quote Response: ");
+    console.log(quoteResponse);
     const wallet_PubKey = wallet.publicKey.toBase58();
     const swapTransaction = await getSwapTransaction(
       quoteResponse,

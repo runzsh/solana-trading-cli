@@ -4,18 +4,20 @@ import { buy } from "./swap";
 import { wallet } from "../helpers/config";
 import { sl } from "../trading_dev/ProfitAndLoss";
 import { sleepTime } from "../helpers";
+
 let token: string = "",
   sol: number = 0,
   slippage: number = 0;
-program
+
+  program
   .option("--token <ADDRESS_TOKEN>", "Specify the token address")
   .option("--sol <NUMBER_OF_SOL>", "Specify the number of SOL")
-  .option("--slip, <SLIPPAGE>", "Specify the slippage tolerance percentage")
+  .option("--slip <SLIPPAGE>", "Specify the slippage tolerance percentage")
   .option("-h, --help", "display help for command")
   .action((options) => {
     if (options.help) {
       logger.info(
-        "ts-node buy --token <ADDRESS_TOKEN> --sol <NUMBER_OF_SOL>"
+        "ts-node buy.ts --token <ADDRESS_TOKEN> --sol <NUMBER_OF_SOL> --slip <SLIPPAGE>"
       );
       process.exit(0);
     }

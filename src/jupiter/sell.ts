@@ -11,12 +11,12 @@ let token:string="",
 program
   .option("--token <ADDRESS_TOKEN>", "Specify the token address")
   .option("--percentage <SELL_PERCENTAGE>", "Specify the sell percentage")
-  .option("--slip, <SLIPPAGE>", "Specify the slippage tolerance percentage")
+  .option("--slip <SLIPPAGE>", "Specify the slippage tolerance percentage")
   .option("-h, --help", "display help for command")
   .action((options) => {
     if (options.help) {
       logger.info(
-        "ts-node sell --token <ADDRESS_TOKEN> --percentage <SELL_PERCENTAGE>"
+        "ts-node sell.ts --token <ADDRESS_TOKEN> --percentage <SELL_PERCENTAGE>"
       );
       process.exit(0);
     }
@@ -41,6 +41,6 @@ program.parse();
  */
 async function sell_cli(side:string, token_address:string, sell_percentage:number, slippage_bps:number) {
   const balance = await getSPLTokenBalance(connection, new PublicKey(token_address), wallet.publicKey);
-  await sell(token_address, balance*percentage/100, slippage_bps); // using 1% slippage
+  await sell(token_address, balance*sell_percentage/100, slippage_bps); // using 1% slippage
 }
 sell_cli("sell", token, percentage, slippage*100);

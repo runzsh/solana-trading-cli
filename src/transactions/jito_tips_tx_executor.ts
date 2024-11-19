@@ -16,18 +16,18 @@ const jito_Validators = [
   "ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt",
   "3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT",
   "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe",
-  "ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49",
+  "ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49",             // louzy, but once in a while
   "Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY",
   "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL",
-  "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",
+  "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",             // louzy, but once in a while
 ];
 const endpoints = [
   // TODO: Choose a jito endpoint which is closest to your location, and uncomment others
   "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  // "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  // "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  // "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  // "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/bundles",
 ];
 
 /**
@@ -39,6 +39,26 @@ export async function getRandomValidator() {
     jito_Validators[Math.floor(Math.random() * jito_Validators.length)];
   return new PublicKey(res);
 }
+
+/**
+ * Confirms a transaction on the Solana blockchain.
+ * @param {string} signature - The signature of the transaction.
+ * @param {object} latestBlockhash - The latest blockhash information.
+ * @returns {object} - An object containing the confirmation status and the transaction signature.
+ */
+export async function jito_confirm(signature: any, latestBlockhash: any) {
+  console.log("Confirming the jito transaction...");
+  const confirmation = await connection.confirmTransaction(
+    {
+      signature,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      blockhash: latestBlockhash.blockhash,
+    },
+    "confirmed"
+  );
+  return { confirmed: !confirmation.value.err, signature };
+}
+
 /**
  * Executes and confirms a Jito transaction.
  * @param {Transaction} transaction - The transaction to be executed and confirmed.
@@ -54,7 +74,7 @@ export async function jito_executeAndConfirm(
   jitofee: any
 ) {
   console.log("Executing transaction (jito)...");
-  const jito_validator_wallet = await getRandomValidator();
+  let jito_validator_wallet = await getRandomValidator();
   console.log("Selected Jito Validator: ", jito_validator_wallet.toBase58());
   try {
     const fee = new CurrencyAmount(Currency.SOL, jitofee, false).raw.toNumber();
@@ -108,23 +128,3 @@ export async function jito_executeAndConfirm(
     return { confirmed: false, signature: null };
   }
 }
-
-/**
- * Confirms a transaction on the Solana blockchain.
- * @param {string} signature - The signature of the transaction.
- * @param {object} latestBlockhash - The latest blockhash information.
- * @returns {object} - An object containing the confirmation status and the transaction signature.
- */
-export async function jito_confirm(signature: any, latestBlockhash: any) {
-  console.log("Confirming the jito transaction...");
-  const confirmation = await connection.confirmTransaction(
-    {
-      signature,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      blockhash: latestBlockhash.blockhash,
-    },
-    "confirmed"
-  );
-  return { confirmed: !confirmation.value.err, signature };
-}
-

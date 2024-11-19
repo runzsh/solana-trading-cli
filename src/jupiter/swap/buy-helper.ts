@@ -30,14 +30,14 @@ export async function buy(tokenToBuy:string, amountTokenOut:number, slippage:any
       convertedAmountOfTokenOut,
       slippage
     );
+    console.log("Quote Response: ");
     console.log(quoteResponse);
     const wallet_PubKey = wallet.publicKey.toBase58();
     const swapTransaction = await getSwapTransaction(
       quoteResponse,
       wallet_PubKey
     );
-    const { confirmed, signature } =
-      await finalizeTransaction(swapTransaction);
+    const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
       console.log("http://solscan.io/tx/" + signature);
     } else {
