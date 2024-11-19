@@ -10,13 +10,13 @@ let token:string="",
   slippage:number=0;
 program
   .option("--token <ADDRESS_TOKEN>", "Specify the token address")
-  .option("--percentage <SELL_PERCENTAGE>", "Specify the sell percentage")
+  .option("--pct <SELL_PERCENTAGE>", "Specify the sell percentage")
   .option("--slip <SLIPPAGE>", "Specify the slippage tolerance percentage")
   .option("-h, --help", "display help for command")
   .action((options) => {
     if (options.help) {
       logger.info(
-        "ts-node sell.ts --token <ADDRESS_TOKEN> --percentage <SELL_PERCENTAGE>"
+        "ts-node sell.ts --token <ADDRESS_TOKEN> --pct <SELL_PERCENTAGE>"
       );
       process.exit(0);
     }
@@ -25,7 +25,7 @@ program
       process.exit(1);
     }
     token = options.token;
-    percentage = options.percentage;
+    percentage = options.pct;
     slippage = options.slip;
   });
 program.parse();

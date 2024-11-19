@@ -1,9 +1,6 @@
 import { logger } from "../helpers/logger";
 import { program } from "commander";
 import { buy } from "./swap";
-import { wallet } from "../helpers/config";
-import { sl } from "../trading_dev/ProfitAndLoss";
-import { sleepTime } from "../helpers";
 
 let token: string = "",
   sol: number = 0,

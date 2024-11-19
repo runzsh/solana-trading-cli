@@ -19,16 +19,24 @@ let fromToken: string = "",
   .action((options) => {
     if (options.help) {
       logger.info(
-        "ts-node execute-swap.ts --from <ADDRESS_FROM_TOKEN> --to <ADDRESS_TO_TOKEN> --pct <PERCENTAGE_OF_BALANCE> --slip <SLIPPAGE>"
+        "ts-node swapex.ts --from <ADDRESS_FROM_TOKEN> --to <ADDRESS_TO_TOKEN> --pct <PERCENTAGE_OF_BALANCE> --slip <SLIPPAGE>"
       );
       process.exit(0);
+    }
+    if (!options.from || !options.to || !options.pct) {
+        console.error(
+          `❌ Missing required options: ${
+            !options.from ? "--from " : ""
+          }${!options.to ? "--to " : ""}${!options.pct ? "--pct" : ""}`
+        );
+        process.exit(1);
     }
     fromToken = options.from;
     toToken = options.to;
     percentage = options.pct;
     slippage = options.slip;
   });
-
+  
 program.parse();
 
 /**

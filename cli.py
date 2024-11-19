@@ -19,13 +19,13 @@ def buy(token, sol, slip):
     print(f"Executing Buy Order...\nToken: {token}\nSOL: {sol}\nSlippage: {slip}%")
     return execute_ts_script("src/jupiter/buy.ts", "--token", token, "--sol", str(sol), "--slip", str(slip))
 
-def sell(token, percentage, slip):
-    print(f"Executing Sell Order...\nToken: {token}\nAmount: {percentage}\nSlippage: {slip}%")
-    return execute_ts_script("src/jupiter/sell.ts", "--token", token, "--percentage", str(percentage), "--slip", str(slip))
+def sell(token, pct, slip):
+    print(f"Executing Sell Order...\nToken: {token}\nAmount: {pct}\nSlippage: {slip}%")
+    return execute_ts_script("src/jupiter/sell.ts", "--token", token, "--pct", str(pct), "--slip", str(slip))
 
-def swap(token_from, token_to, amount, slip):
-    print(f"Executing Swap...\nFrom: {token_from}\nTo: {token_to}\nAmount: {amount}\nSlippage: {slip}%")
-    return execute_ts_script("src/jupiter/swap.ts", "--from", token_from, "--to", token_to, "--amount", str(amount), "--slip", str(slip))
+def swap(token_from, token_to, pct, slip):
+    print(f"Executing Swap...\nFrom: {token_from}\nTo: {token_to}\nPercent: {pct}\nSlippage: {slip}%")
+    return execute_ts_script("src/jupiter/executeswap.ts", "--from", token_from, "--to", token_to, "--pct", str(pct), "--slip", str(slip))
 
 def account_balance():
     print("Fetching account balance...")
@@ -57,9 +57,9 @@ def main():
         elif action == "Swap":
             token_from = inquirer.text("Enter token to swap from:")
             token_to = inquirer.text("Enter token to swap to:")
-            amount = inquirer.text("Enter amount to swap:")
+            percentage = inquirer.text("Enter percentage of balance to swap:")
             slip = inquirer.text("Enter slippage tolerance (percentage):")
-            swap(token_from, token_to, amount, slip)
+            swap(token_from, token_to, percentage, slip)
         elif action == "Account Balance":
             account_balance()
         elif action == "Exit":
