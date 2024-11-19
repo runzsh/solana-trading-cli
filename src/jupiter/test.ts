@@ -1,10 +1,10 @@
 import { getCurrentPriceInSOL, getCurrentPriceInUSD } from "./fetch-price";
 async function main() {
-  const tokenAddress = "2SEUhUGpKMPuyDysMFfKNRLBxVf9kG2xBxW16FVopump";
-  const currentPopcatPriceInSOL = await getCurrentPriceInSOL(tokenAddress);
-  const currentPopcatPriceInUSD = await getCurrentPriceInUSD(tokenAddress);
-  console.log(`Current price in SOL: ${currentPopcatPriceInSOL}`);
-  console.log(`Current price in USD: ${currentPopcatPriceInUSD}`);
+  const tokenAddress = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
+  const currentTokenPriceInSOL = await getCurrentPriceInSOL(tokenAddress);
+  const currentTokenPriceInUSD = await getCurrentPriceInUSD(tokenAddress);
+  console.log(`Current price in SOL: ${currentTokenPriceInSOL}`);
+  console.log(`Current price in USD: ${currentTokenPriceInUSD}`);
 }
 
 main();

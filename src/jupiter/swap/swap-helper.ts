@@ -42,7 +42,7 @@ export async function getSwapTransaction(
       userPublicKey: wallet_pubKey,
       wrapAndUnwrapSol: true,
       dynamicComputeUnitLimit: true, // allow dynamic compute limit instead of max 1,400,000
-      prioritizationFeeLamports: 4211970, // prioritization fee
+      prioritizationFeeLamports: "auto", // prioritization fee, 4211970
     };
     const resp = await fetch("https://quote-api.jup.ag/v6/swap", {
       method: "POST",

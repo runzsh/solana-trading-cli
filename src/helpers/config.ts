@@ -24,7 +24,7 @@ export function loadKeypairFromFile(filename: string) {
   return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(secret)));
 }
 export const jito_fee = process.env.JITO_FEE; // 0.00009 SOL
-export const shyft_api_key = process.env.SHYFT_API_KEY; // your shyft api key
+// export const shyft_api_key = process.env.SHYFT_API_KEY; // your shyft api key
 export const wallet = Keypair.fromSecretKey(
   bs58.decode(process.env.PRIVATE_KEY || "")
 ); // your wallet

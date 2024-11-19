@@ -6,10 +6,12 @@ import { connection, wallet } from "../helpers/config";
 import { PublicKey } from "@solana/web3.js";
 
 let token:string="",
-  percentage:number=0;
+  percentage:number=0,
+  slippage:number=0;
 program
   .option("--token <ADDRESS_TOKEN>", "Specify the token address")
   .option("--percentage <SELL_PERCENTAGE>", "Specify the sell percentage")
+  .option("--slip, <SLIPPAGE>", "Specify the slippage tolerance percentage")
   .option("-h, --help", "display help for command")
   .action((options) => {
     if (options.help) {
@@ -24,6 +26,7 @@ program
     }
     token = options.token;
     percentage = options.percentage;
+    slippage = options.slip;
   });
 program.parse();
 
@@ -33,10 +36,11 @@ program.parse();
  * @param {string} side - The side of the trade (buy/sell).
  * @param {string} token_address - The address of the token to trade.
  * @param {number} sell_percentage - The sell percentage.
+ * @param {number} slippage_bps - The slippage tolerance percentage.
  * @returns {Promise<void>} - A promise that resolves when the swap is completed.
  */
-async function sell_cli(side:string, token_address:string, sell_percentage:number) {
+async function sell_cli(side:string, token_address:string, sell_percentage:number, slippage_bps:number) {
   const balance = await getSPLTokenBalance(connection, new PublicKey(token_address), wallet.publicKey);
-  await sell(token_address, balance*percentage/100, 1); // using 1% slippage
+  await sell(token_address, balance*percentage/100, slippage_bps); // using 1% slippage
 }
-sell_cli("sell", token, percentage);
+sell_cli("sell", token, percentage, slippage*100);

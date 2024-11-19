@@ -1,4 +1,9 @@
-import {getQuote, getSwapTransaction, convertToInteger, finalizeTransaction} from "./swap-helper";
+import {
+  getQuote, 
+  getSwapTransaction, 
+  convertToInteger, 
+  finalizeTransaction
+} from "./swap-helper";
 import { PublicKey } from "@solana/web3.js";
 import { wallet } from "../../helpers/config";
 import { getDecimals } from "../../helpers/util";
@@ -53,4 +58,3 @@ async function main() {
 }
 
 //main();
-
