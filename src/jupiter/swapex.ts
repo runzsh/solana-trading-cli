@@ -1,21 +1,19 @@
-import { swap } from "./swap/swap-helper";
 import { logger } from "../helpers/logger";
+import { swap } from "./swap";
 import { program } from "commander";
-import { PublicKey } from "@solana/web3.js";
+import {getSPLTokenBalance} from "../helpers/check_balance"
 import { connection, wallet } from "../helpers/config";
-import { getSPLTokenBalance } from "../helpers";
+import { PublicKey } from "@solana/web3.js";
 
 let fromToken: string = "",
   toToken: string = "",
   percentage: number = 0,
   slippage: number = 0;
-
-  program
+program
   .option("--from <ADDRESS_TOKEN>", "Specify the address of the token you want to swap from")
   .option("--to <ADDRESS_TOKEN>", "Specify the address of the token you want to swap to")
   .option("--pct <PERCENTAGE_OF_BALANCE>", "Specify the percentage of balance to swap-out")
   .option("--slip <SLIPPAGE>", "Specify the slippage tolerance percentage", "1") // Default slippage to 1%
-  .option("-h, --help", "display help for command")
   .action((options) => {
     if (options.help) {
       logger.info(
@@ -36,7 +34,6 @@ let fromToken: string = "",
     percentage = options.pct;
     slippage = options.slip;
   });
-  
 program.parse();
 
 /**
@@ -52,5 +49,18 @@ async function swap_cli(fromTokenAddress: string, toTokenAddress: string, pctBal
     const balance = await getSPLTokenBalance(connection, new PublicKey(fromTokenAddress), wallet.publicKey);  
     await swap(fromTokenAddress, toTokenAddress, balance * pctBalance/100, slippageBps);
 }
-
 swap_cli(fromToken, toToken, percentage, slippage * 100);
+
+
+// async function main() {
+//   // Hardcoded arguments
+//   const fromToken = "So11111111111111111111111111111111111111112"; // Replace with source token address
+//   const toToken = "FQ1tyso61AH1tzodyJfSwmzsD3GToybbRNoZxUBz21p8"; // Replace with destination token address
+//   const percentage = 25; // Percentage of balance to swap
+//   const slippage = 0.2 * 100; // Slippage tolerance (in basis points, 0.2% -> 20)
+
+//   console.log('Starting swap operation...');
+//   await swap_cli(fromToken, toToken, percentage, slippage);
+// }
+
+// main()

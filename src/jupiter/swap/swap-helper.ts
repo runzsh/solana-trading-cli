@@ -98,6 +98,7 @@ export async function finalizeTransaction(swapTransaction: any) {
   }
   return { confirmed: false, signature: null };
 }
+
 /**
  * Performs a token swap transaction.
  *

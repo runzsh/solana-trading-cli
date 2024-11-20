@@ -20,11 +20,11 @@ def buy(token, sol, slip):
     return execute_ts_script("src/jupiter/buy.ts", "--token", token, "--sol", str(sol), "--slip", str(slip))
 
 def sell(token, pct, slip):
-    print(f"Executing Sell Order...\nToken: {token}\nAmount: {pct}\nSlippage: {slip}%")
+    print(f"Executing Sell Order...\nToken: {token}\nPercentage: {pct}\nSlippage: {slip}%")
     return execute_ts_script("src/jupiter/sell.ts", "--token", token, "--pct", str(pct), "--slip", str(slip))
 
 def swap(token_from, token_to, pct, slip):
-    print(f"Executing Swap...\nFrom: {token_from}\nTo: {token_to}\nPercent: {pct}\nSlippage: {slip}%")
+    print(f"Executing Swap...\nFrom: {token_from}\nTo: {token_to}\nPercentage: {pct}\nSlippage: {slip}%")
     return execute_ts_script("src/jupiter/swapex.ts", "--from", token_from, "--to", token_to, "--pct", str(pct), "--slip", str(slip))
 
 def account_balance():

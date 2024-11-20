@@ -12,15 +12,14 @@ program
   .option("--token <ADDRESS_TOKEN>", "Specify the token address")
   .option("--pct <SELL_PERCENTAGE>", "Specify the sell percentage")
   .option("--slip <SLIPPAGE>", "Specify the slippage tolerance percentage")
-  .option("-h, --help", "display help for command")
   .action((options) => {
     if (options.help) {
       logger.info(
-        "ts-node sell.ts --token <ADDRESS_TOKEN> --pct <SELL_PERCENTAGE>"
+        "ts-node sell.ts --token <ADDRESS_TOKEN> --pct <SELL_PERCENTAGE> --slip <SLIPPAGE>"
       );
       process.exit(0);
     }
-    if (!options.token || !options.percentage) {
+    if (!options.token || !options.pct || !options.slip) {
       console.error("❌ Missing required options");
       process.exit(1);
     }

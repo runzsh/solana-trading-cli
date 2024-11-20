@@ -6,11 +6,10 @@ let token: string = "",
   sol: number = 0,
   slippage: number = 0;
 
-  program
+program
   .option("--token <ADDRESS_TOKEN>", "Specify the token address")
   .option("--sol <NUMBER_OF_SOL>", "Specify the number of SOL")
   .option("--slip <SLIPPAGE>", "Specify the slippage tolerance percentage")
-  .option("-h, --help", "display help for command")
   .action((options) => {
     if (options.help) {
       logger.info(
