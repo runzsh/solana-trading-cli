@@ -25,7 +25,7 @@ def sell(token, pct, slip):
 
 def swap(token_from, token_to, pct, slip):
     print(f"Executing Swap...\nFrom: {token_from}\nTo: {token_to}\nPercent: {pct}\nSlippage: {slip}%")
-    return execute_ts_script("src/jupiter/executeswap.ts", "--from", token_from, "--to", token_to, "--pct", str(pct), "--slip", str(slip))
+    return execute_ts_script("src/jupiter/swapex.ts", "--from", token_from, "--to", token_to, "--pct", str(pct), "--slip", str(slip))
 
 def account_balance():
     print("Fetching account balance...")
