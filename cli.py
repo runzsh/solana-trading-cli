@@ -3,16 +3,20 @@ import subprocess
 import sys
 
 
-
 def execute_ts_script(script_name, *args):
     """Helper function to execute the TypeScript script with arguments."""
     command = ["ts-node", script_name, *args]
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(f"\n{result.stdout}")
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"\nError executing script: {e.stderr}")
+        process = subprocess.run(
+            command,
+            stdout=sys.stdout,  # Direct stdout to the console
+            stderr=sys.stderr,  # Direct stderr to the console
+            text=True,
+            check=False  # Avoid termination on errors
+        )
+        return process.returncode  # Return the exit code
+    except Exception as e:
+        print(f"\nAn error occurred: {e}")
         return None
 
 def buy(token, sol, slip):
@@ -28,11 +32,17 @@ def swap(token_from, token_to, pct, slip):
     return execute_ts_script("src/jupiter/swapex.ts", "--from", token_from, "--to", token_to, "--pct", str(pct), "--slip", str(slip))
 
 def account_balance():
+    type = inquirer.list_input("Select:", choices=["SOL", "Token Mint Address"])
+    if type == "Token Mint Address":
+        token = inquirer.text("Enter token mint address:")
+        print(f"Fetching...")
+        return execute_ts_script("src/jupiter/balance.ts", "--token", token)
+    
     print("Fetching account balance...")
-    return execute_ts_script("src/jupiter/account_balance.ts")
+    return execute_ts_script("src/jupiter/balance.ts", "--token", "So11111111111111111111111111111111111111112")
 
 def main():
-    print("\nWelcome to the Solana Trading CLI!\n")
+    print("Welcome to the Solana Trading CLI!")
     options = [
         "Buy",
         "Sell",
@@ -42,7 +52,8 @@ def main():
     ]
 
     while True:
-        action = inquirer.list_input("What would you like to do?", choices=options)
+        print("\n")
+        action = inquirer.list_input("Action:", choices=options)
 
         if action == "Buy":
             token = inquirer.text("Enter token address/symbol:")

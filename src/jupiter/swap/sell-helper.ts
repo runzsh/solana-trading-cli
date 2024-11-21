@@ -44,6 +44,7 @@ export async function sell(
     );
     const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
+      console.log("Jito tip txn confirmed");
       console.log("http://solscan.io/tx/" + signature);
     } else {
       console.log("Transaction failed");

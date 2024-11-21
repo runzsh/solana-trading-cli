@@ -69,15 +69,14 @@ async function swap_cli(
 swap_cli(fromToken, toToken, percentage, slippage * 100);
 
 
-async function main() {
-  // Hardcoded arguments
-  const fromToken = "So11111111111111111111111111111111111111112"; // Replace with source token address
-  const toToken = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // Replace with destination token address
-  const percentage = 10; // Percentage of balance to swap
-  const slippage = 0.5 * 100; // Slippage tolerance (in basis points, 0.2% -> 20)
+// async function main() {
+//   // Hardcoded arguments
+//   const fromToken = "So11111111111111111111111111111111111111112"; // Replace with source token address
+//   const toToken = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"; // Replace with destination token address
+//   const percentage = 10; // Percentage of balance to swap
+//   const slippage = 0.5 * 100; // Slippage tolerance (in basis points, 0.2% -> 20)
 
-  console.log('Starting swap operation...');
-  await swap_cli(fromToken, toToken, percentage, slippage);
-}
-
+//   console.log('Starting swap operation...');
+//   await swap_cli(fromToken, toToken, percentage, slippage);
+// }
 // main()

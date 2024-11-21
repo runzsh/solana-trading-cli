@@ -65,6 +65,9 @@ export async function getSPLTokenBalance(connection:Connection, tokenAccount:Pub
   const address = getAssociatedTokenAddressSync(tokenAccount, payerPubKey);
   const info = await connection.getTokenAccountBalance(address);
   if (info.value.uiAmount == null) throw new Error("No balance found");
+  console.log(
+    `💰 Finished! The balance for the token mint address ${tokenAccount} is ${info.value.uiAmount}!`
+  );
   return info.value.uiAmount;
 }
 /**

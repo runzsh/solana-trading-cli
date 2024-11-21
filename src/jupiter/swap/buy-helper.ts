@@ -38,6 +38,7 @@ export async function buy(tokenToBuy:string, amountTokenOut:number, slippage:any
     );
     const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
+      console.log("Jito tip txn confirmed");
       console.log("http://solscan.io/tx/" + signature);
     } else {
       console.log("Transaction failed");

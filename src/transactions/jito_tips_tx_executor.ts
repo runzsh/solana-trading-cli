@@ -23,9 +23,9 @@ const jito_Validators = [
 ];
 const endpoints = [
   // TODO: Choose a jito endpoint which is closest to your location, and uncomment others
-  "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
+  // "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  // "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/bundles",
 ];

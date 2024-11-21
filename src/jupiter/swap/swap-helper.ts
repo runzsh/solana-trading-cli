@@ -80,6 +80,7 @@ export async function finalizeTransaction(swapTransaction: any) {
     // deserialize the transaction
     const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
     let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+    
     // sign the transaction
     transaction.sign([wallet]);
 
@@ -105,7 +106,7 @@ export async function finalizeTransaction(swapTransaction: any) {
  * @param {string} tokenToSell - The token to sell.
  * @param {string} tokenToBuy - The token to buy.
  * @param {number} amountTokenOut - The amount of token to receive.
- * @param {number} slippage - The allowed slippage percentage.
+ * @param {number} slippage - The allowed slippage basis points (1bps = 0.01 percent).
  * @returns {Promise<void>} - A promise that resolves when the swap transaction is completed.
  */
 export async function swap(
@@ -133,6 +134,7 @@ export async function swap(
     );
     const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
+      console.log("Jito tip txn confirmed");
       console.log("http://solscan.io/tx/" + signature);
     } else {
       console.log("Transaction failed");
