@@ -1,9 +1,10 @@
 import { logger } from "../helpers/logger";
 import { swap } from "./swap";
 import { program } from "commander";
-import {getSPLTokenBalance} from "../helpers/check_balance"
+import {checkBalanceByAddress, getSPLTokenBalance} from "../helpers/check_balance"
 import { connection, wallet } from "../helpers/config";
 import { PublicKey } from "@solana/web3.js";
+const wsol = "So11111111111111111111111111111111111111112";
 
 let fromToken: string = "",
   toToken: string = "",
@@ -45,22 +46,38 @@ program.parse();
  * @param {number} slippageBps - The slippage tolerance percentage.
  * @returns {Promise<void>} - A promise that resolves when the swap is completed.
  */
-async function swap_cli(fromTokenAddress: string, toTokenAddress: string, pctBalance: number, slippageBps: number) {
-    const balance = await getSPLTokenBalance(connection, new PublicKey(fromTokenAddress), wallet.publicKey);  
-    await swap(fromTokenAddress, toTokenAddress, balance * pctBalance/100, slippageBps);
+async function swap_cli(
+    fromTokenAddress: string, 
+    toTokenAddress: string, 
+    pctBalance: number, 
+    slippageBps: number
+) {
+    let balanceToSwap;
+
+    if (fromTokenAddress === wsol) {
+        balanceToSwap = await checkBalanceByAddress(wallet.publicKey.toBase58(), connection);
+    } else {
+        balanceToSwap = await getSPLTokenBalance(connection, new PublicKey(fromTokenAddress), wallet.publicKey);
+    }
+    
+    if (balanceToSwap !== undefined) {
+        await swap(fromTokenAddress, toTokenAddress, balanceToSwap * pctBalance / 100, slippageBps);
+    } else {
+        console.error('Failed to retrieve balance to swap.');
+    }
 }
 swap_cli(fromToken, toToken, percentage, slippage * 100);
 
 
-// async function main() {
-//   // Hardcoded arguments
-//   const fromToken = "So11111111111111111111111111111111111111112"; // Replace with source token address
-//   const toToken = "FQ1tyso61AH1tzodyJfSwmzsD3GToybbRNoZxUBz21p8"; // Replace with destination token address
-//   const percentage = 25; // Percentage of balance to swap
-//   const slippage = 0.2 * 100; // Slippage tolerance (in basis points, 0.2% -> 20)
+async function main() {
+  // Hardcoded arguments
+  const fromToken = "So11111111111111111111111111111111111111112"; // Replace with source token address
+  const toToken = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // Replace with destination token address
+  const percentage = 10; // Percentage of balance to swap
+  const slippage = 0.5 * 100; // Slippage tolerance (in basis points, 0.2% -> 20)
 
-//   console.log('Starting swap operation...');
-//   await swap_cli(fromToken, toToken, percentage, slippage);
-// }
+  console.log('Starting swap operation...');
+  await swap_cli(fromToken, toToken, percentage, slippage);
+}
 
 // main()

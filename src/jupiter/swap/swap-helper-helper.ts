@@ -35,6 +35,7 @@ export async function swap(
       convertedAmountOfTokenOut,
       slippage
     );
+    console.log("Quote response: ", quoteResponse);
     const wallet_PubKey = wallet.publicKey.toBase58();
     const swapTransaction = await getSwapTransaction(
       quoteResponse,
