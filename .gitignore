@@ -140,4 +140,4 @@ test-ledger
 .DS_Store
 
 # VSCode
-.vscode/*
+.vscode/
