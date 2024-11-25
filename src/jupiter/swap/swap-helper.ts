@@ -3,6 +3,7 @@ import fetch from "cross-fetch";
 import { connection, wallet, jito_fee } from "../../helpers/config";
 import { jito_executeAndConfirm } from "../../transactions/jito_tips_tx_executor";
 import { getDecimals } from "../../helpers/util";
+
 /**
  * Retrieves a quote for swapping tokens.
  *
@@ -57,6 +58,7 @@ export async function getSwapTransaction(
     throw new Error(error);
   }
 }
+
 /**
  * Converts the given amount to an integer by multiplying it with 10 raised to the power of decimals.
  * @param {number} amount - The amount to be converted.

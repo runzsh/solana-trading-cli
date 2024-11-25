@@ -39,16 +39,19 @@ export const private_key = process.env.PRIVATE_KEY; // your private key
 export const dev_endpoint = process.env.HELIUS_DEVNET_ENDPOINT || ""; // devnet endpoint, if you use devnet
 export const main_endpoint = process.env.HELIUS_MAINNET_ENDPOINT || ""; // mainnet endpoint
 
-export const bloXRoute_auth_header = process.env.BLOXROUTE_AUTH_HEADER;
-export const bloXroute_fee = process.env.BLOXROUTE_FEE; // 0.001 SOL
-
+export const connection = new Connection(main_endpoint, "confirmed"); // mainnet connection
+export const dev_connection = new Connection(dev_endpoint, "confirmed"); // devnet connection
 // const second_main_endpoint = process.env.SECOND_MAINNET_ENDPOINT; // if you use copy trade program, second mainnet endpoint
 // const RPC_Websocket_endpoint = process.env.WS_ENDPOINT;
 // const second_RPC_Websocket_endpoint = process.env.SECOND_WS_ENDPOINT; // if you use copy trade program
+
+export const bloXRoute_auth_header = process.env.BLOXROUTE_AUTH_HEADER;
+export const bloXroute_fee = process.env.BLOXROUTE_FEE; // 0.001 SOL
+
 // const stop_lost = process.env.STOP_LOST; // percentage of stop lost, if you use copy trade program
 // const take_profit = process.env.TAKE_PROFIT; // percentage of take profit, if you use copy trade program
 export const smart_money_wallet = process.env.SMART_MONEY_WALLET; // if you use copy trade program
-export const connection = new Connection(main_endpoint, "confirmed"); // mainnet connection
+
 //const connection = new Connection(main_endpoint, { // if you use copy trade program
 //  wsEndpoint: RPC_Websocket_endpoint,
 //  commitment: "confirmed",
@@ -57,10 +60,8 @@ export const connection = new Connection(main_endpoint, "confirmed"); // mainnet
 //  wsEndpoint: second_RPC_Websocket_endpoint,
 //  commitment: "confirmed",
 //});
-export const dev_connection = new Connection(dev_endpoint, "confirmed"); // devnet connection
 
 export const PROGRAMIDS = MAINNET_PROGRAM_ID; // raydium mainnet program address
-
 export const RAYDIUM_MAINNET_API = RAYDIUM_MAINNET; // raydium mainnet program's api
 
 export const makeTxVersion = TxVersion.V0; // LEGACY
@@ -84,6 +85,5 @@ export const DEFAULT_TOKEN = {
     "USDC"
   ),
 };
-
 
 export const wsol = "So11111111111111111111111111111111111111112";

@@ -11,6 +11,10 @@ import axios from "axios";
 import bs58 from "bs58";
 import { Currency, CurrencyAmount } from "@raydium-io/raydium-sdk";
 import { connection } from "../helpers/config";
+
+/**
+ * The list of validators for the Jito network.
+ */
 const jito_Validators = [
   "DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh",
   "ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt",
@@ -21,9 +25,10 @@ const jito_Validators = [
   "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL",
   "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",             // louzy, but once in a while
 ];
+
 const endpoints = [
   // TODO: Choose a jito endpoint which is closest to your location, and uncomment others
-  // "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
+  "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
   "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
@@ -74,11 +79,12 @@ export async function jito_executeAndConfirm(
   jitofee: any
 ) {
   console.log("Executing transaction (jito)...");
-  let jito_validator_wallet = await getRandomValidator();
+  let jito_validator_wallet = await getRandomValidator(); // Choose a random validator
   console.log("Selected Jito Validator: ", jito_validator_wallet.toBase58());
   try {
-    const fee = new CurrencyAmount(Currency.SOL, jitofee, false).raw.toNumber();
+    const fee = new CurrencyAmount(Currency.SOL, jitofee, false).raw.toNumber();  // Convert the fee to lamports
     console.log(`Jito Fee: ${fee / 10 ** 9} sol`);
+
     const jitoFee_message = new TransactionMessage({
       payerKey: payer.publicKey,
       recentBlockhash: lastestBlockhash.blockhash,
@@ -89,20 +95,23 @@ export async function jito_executeAndConfirm(
           lamports: fee,
         }),
       ],
-    }).compileToV0Message();
-    const jitoFee_transaction = new VersionedTransaction(jitoFee_message);
-    jitoFee_transaction.sign([payer]);
-    const jitoTxSignature = bs58.encode(jitoFee_transaction.signatures[0]);
+    }).compileToV0Message();  // Compile the Jito fee transaction
+    const jitoFee_transaction = new VersionedTransaction(jitoFee_message);  // Create the Jito fee transaction
+    jitoFee_transaction.sign([payer]);  //  Sign the Jito fee transaction
+    const jitoTxSignature = bs58.encode(jitoFee_transaction.signatures[0]); //  Get the signature of the Jito fee transaction
     const serializedJitoFeeTransaction = bs58.encode(
       jitoFee_transaction.serialize()
-    );
+    );  // Serialize the Jito fee transaction
+
     console.log("Transaction Explorer");
-    console.log("http://solscan.io/tx/" + bs58.encode(transaction.signatures[0]));
-    const serializedTransaction = bs58.encode(transaction.serialize());
+    console.log("http://solscan.io/tx/" + bs58.encode(transaction.signatures[0]));  // Print the transaction explorer link for OG Txn
+
+    const serializedTransaction = bs58.encode(transaction.serialize()); // Serialize the original transaction
     const final_transaction = [
       serializedJitoFeeTransaction,
       serializedTransaction,
-    ];
+    ];  // Combine the Jito fee transaction and the original transaction
+
     const requests = endpoints.map((url) =>
       axios.post(url, {
         jsonrpc: "2.0",
@@ -110,7 +119,8 @@ export async function jito_executeAndConfirm(
         method: "sendBundle",
         params: [final_transaction],
       })
-    );
+    );  // Send the transaction to the Jito validators
+
     console.log("Sending tx to Jito validators...");
     const res = await Promise.all(requests.map((p) => p.catch((e) => e)));
     const success_res = res.filter((r) => !(r instanceof Error));
