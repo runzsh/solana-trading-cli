@@ -26,4 +26,4 @@ async function main(){
     const tokenAddress = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // POPCAT
     console.log(await getCurrentPriceInUSD(tokenAddress));
 }
-// main();
+main();

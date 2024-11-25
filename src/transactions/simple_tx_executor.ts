@@ -39,4 +39,3 @@ async function simple_confirm(signature:any, latestBlockhash:any) {
   );
   return { confirmed: !confirmation.value.err, signature };
 }
-

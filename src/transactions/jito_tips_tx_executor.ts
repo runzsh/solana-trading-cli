@@ -96,6 +96,8 @@ export async function jito_executeAndConfirm(
     const serializedJitoFeeTransaction = bs58.encode(
       jitoFee_transaction.serialize()
     );
+    console.log("Transaction Explorer");
+    console.log("http://solscan.io/tx/" + bs58.encode(transaction.signatures[0]));
     const serializedTransaction = bs58.encode(transaction.serialize());
     const final_transaction = [
       serializedJitoFeeTransaction,
