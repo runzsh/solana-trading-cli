@@ -138,3 +138,6 @@ dist
 node_modules
 test-ledger
 .DS_Store
+
+# VSCode
+.vscode/*
