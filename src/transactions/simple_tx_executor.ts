@@ -1,10 +1,3 @@
-import {
-  BlockhashWithExpiryBlockHeight,
-  Connection,
-  Keypair,
-  Transaction,
-  VersionedTransaction,
-} from "@solana/web3.js";
 import { connection } from "../helpers/config";
 
 /**
@@ -28,14 +21,34 @@ async function simple_execute(transaction:any) {
   });
 }
 
-async function simple_confirm(signature:any, latestBlockhash:any) {
-  const confirmation = await connection.confirmTransaction(
-    {
-      signature,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      blockhash: latestBlockhash.blockhash,
-    },
-    connection.commitment
-  );
-  return { confirmed: !confirmation.value.err, signature };
+// async function simple_confirm(signature:any, latestBlockhash:any) {
+//   const confirmation = await connection.confirmTransaction(
+//     {
+//       signature,
+//       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+//       blockhash: latestBlockhash.blockhash,
+//     },
+//     connection.commitment
+//   );
+//   return { confirmed: !confirmation.value.err, signature };
+// }
+
+async function simple_confirm(signature: string, latestBlockhash: any) {
+  const timeout = 30000; // 30 seconds timeout
+  const pollInterval = 1000; // 1 second polling interval
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const status = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
+
+    if (status && status.value && status.value.confirmationStatus === connection.commitment) {
+      return { confirmed: true, signature };
+    }
+
+    console.log("Waiting for confirmation...");
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+  }
+
+  console.error("Transaction confirmation timed out");
+  return { confirmed: false, signature };
 }

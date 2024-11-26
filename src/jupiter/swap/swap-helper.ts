@@ -2,6 +2,7 @@ import { VersionedTransaction, PublicKey } from "@solana/web3.js";
 import fetch from "cross-fetch";
 import { connection, wallet, jito_fee } from "../../helpers/config";
 import { jito_executeAndConfirm } from "../../transactions/jito_tips_tx_executor";
+import { simple_executeAndConfirm } from "../../transactions/simple_tx_executor";
 import { getDecimals } from "../../helpers/util";
 
 /**
@@ -27,6 +28,7 @@ export async function getQuote(
 
 /**
  * Retrieves the swap transaction from the quote API.
+ * 
  * @param {Object} quoteResponse - The quote response object.
  * @param {string} wallet_pubKey - The public key of the user's wallet.
  * @returns {Promise<string>} - The swap transaction.
@@ -61,6 +63,7 @@ export async function getSwapTransaction(
 
 /**
  * Converts the given amount to an integer by multiplying it with 10 raised to the power of decimals.
+ * 
  * @param {number} amount - The amount to be converted.
  * @param {number} decimals - The number of decimal places.
  * @returns {Promise<number>} The converted integer value.
@@ -70,12 +73,13 @@ export async function convertToInteger(amount: number, decimals: number) {
 }
 
 /**
- * Finalizes a swap transaction by deserializing, signing, and executing the transaction.
+ * JITO Finalizes a swap transaction by deserializing, signing, and executing the transaction.
+ * 
  * @param {string} swapTransaction - The base64 encoded swap transaction.
  * @returns {Promise<{ confirmed: boolean, signature: string }>} - A promise that resolves to an object containing the confirmation status and transaction signature.
  * @throws {Error} - If an error occurs during the transaction finalization process.
  */
-export async function finalizeTransaction(swapTransaction: any) {
+export async function jitoFinalizeTransaction(swapTransaction: any) {
   try {
     let confirmed = null,
       signature = null;
@@ -93,6 +97,40 @@ export async function finalizeTransaction(swapTransaction: any) {
       latestBlockhash,
       jito_fee
     );
+    confirmed = res.confirmed;
+    signature = res.signature;
+    return { confirmed, signature };
+  } catch (error: any) {
+    throw new Error(error);
+  }
+  return { confirmed: false, signature: null };
+}
+
+/**
+ * Finalizes a swap transaction by deserializing, signing, and executing the transaction.
+ * 
+ * @param {string} swapTransaction - The base64 encoded swap transaction.
+ * @returns {Promise<{ confirmed: boolean, signature: string }>} - A promise that resolves to an object containing the confirmation status and transaction signature.
+ * @throws {Error} - If an error occurs during the transaction finalization process.
+ */
+export async function finalizeTransaction(swapTransaction: any) {
+  try {
+    let confirmed = null,
+      signature = null;
+    // deserialize the transaction
+    const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
+    let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+    
+    // sign the transaction
+    transaction.sign([wallet]);
+
+    const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+    const res = await simple_executeAndConfirm(
+      transaction,
+      wallet,
+      latestBlockhash
+    );
+
     confirmed = res.confirmed;
     signature = res.signature;
     return { confirmed, signature };
@@ -134,9 +172,10 @@ export async function swap(
       quoteResponse,
       wallet_PubKey
     );
+    // const { confirmed, signature } = await jitoFinalizeTransaction(swapTransaction);
     const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
-      console.log("Jito tip txn confirmed");
+      console.log("💸 Finished!");
       console.log("http://solscan.io/tx/" + signature);
     } else {
       console.log("Transaction failed");

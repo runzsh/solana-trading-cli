@@ -1,9 +1,7 @@
 import {
-  BlockhashWithExpiryBlockHeight,
   Keypair,
   PublicKey,
   SystemProgram,
-  Connection,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
@@ -27,10 +25,10 @@ const jito_Validators = [
 ];
 
 const endpoints = [
-  // TODO: Choose a jito endpoint which is closest to your location, and uncomment others
+  // TODO: Choose a jito endpoint which is closest to your location, and leave others commented
   "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
-  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  // "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/bundles",
 ];
@@ -45,23 +43,59 @@ export async function getRandomValidator() {
   return new PublicKey(res);
 }
 
+// /**
+//  * Confirms a transaction on the Solana blockchain.
+//  * @param {string} signature - The signature of the transaction.
+//  * @param {object} latestBlockhash - The latest blockhash information.
+//  * @returns {object} - An object containing the confirmation status and the transaction signature.
+//  */
+// export async function jito_confirm(signature: any, latestBlockhash: any) {
+//   console.log("Confirming the jito transaction...");
+//   const confirmation = await connection.confirmTransaction(
+//     {
+//       signature,
+//       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+//       blockhash: latestBlockhash.blockhash,
+//     },
+//     "confirmed"
+//   );
+//   return { confirmed: !confirmation.value.err, signature };
+// }
+
 /**
- * Confirms a transaction on the Solana blockchain.
+ * Confirms a transaction on the Solana blockchain using polling (compatible with Alchemy).
  * @param {string} signature - The signature of the transaction.
  * @param {object} latestBlockhash - The latest blockhash information.
  * @returns {object} - An object containing the confirmation status and the transaction signature.
  */
-export async function jito_confirm(signature: any, latestBlockhash: any) {
-  console.log("Confirming the jito transaction...");
-  const confirmation = await connection.confirmTransaction(
-    {
-      signature,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      blockhash: latestBlockhash.blockhash,
-    },
-    "confirmed"
-  );
-  return { confirmed: !confirmation.value.err, signature };
+export async function jito_confirm(signature: string, latestBlockhash: any) {
+  console.log("Confirming the Jito transaction...");
+  
+  const timeout = 30000; // 30 seconds timeout
+  const pollInterval = 1000; // Poll every 1 second
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const status = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
+
+    if (status && status.value) {
+      if (status.value.confirmationStatus === "confirmed" || status.value.confirmationStatus === "finalized") {
+        console.log("Transaction confirmed.");
+        return { confirmed: true, signature };
+      }
+      
+      if (status.value.err) {
+        console.error("Transaction failed:", status.value.err);
+        return { confirmed: false, signature };
+      }
+    }
+
+    console.log("Waiting for confirmation...");
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+  }
+
+  console.error("Transaction confirmation timed out.");
+  return { confirmed: false, signature };
 }
 
 /**
@@ -103,7 +137,7 @@ export async function jito_executeAndConfirm(
       jitoFee_transaction.serialize()
     );  // Serialize the Jito fee transaction
 
-    console.log("Transaction Explorer");
+    console.log("OG Txn:");
     console.log("http://solscan.io/tx/" + bs58.encode(transaction.signatures[0]));  // Print the transaction explorer link for OG Txn
 
     const serializedTransaction = bs58.encode(transaction.serialize()); // Serialize the original transaction

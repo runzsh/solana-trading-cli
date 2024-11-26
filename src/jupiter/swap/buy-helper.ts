@@ -2,7 +2,8 @@ import {
   getQuote, 
   getSwapTransaction, 
   convertToInteger, 
-  finalizeTransaction
+  finalizeTransaction,
+  jitoFinalizeTransaction,
 } from "./swap-helper";
 import { PublicKey } from "@solana/web3.js";
 import { wallet } from "../../helpers/config";
@@ -36,9 +37,10 @@ export async function buy(tokenToBuy:string, amountTokenOut:number, slippage:any
       quoteResponse,
       wallet_PubKey
     );
+    // const { confirmed, signature } = await jitoFinalizeTransaction(swapTransaction);
     const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
-      console.log("Jito tip txn confirmed");
+      console.log("💸 Finished!");
       console.log("http://solscan.io/tx/" + signature);
     } else {
       console.log("Transaction failed");
@@ -51,7 +53,7 @@ export async function buy(tokenToBuy:string, amountTokenOut:number, slippage:any
 }
 
 async function main() {
-  const tokenAddress = "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh";
+  const tokenAddress = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
   const amountOfSOLToUse = 0.015
   const slippage = 1;
   await buy(tokenAddress, amountOfSOLToUse, slippage);
