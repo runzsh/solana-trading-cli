@@ -76,9 +76,7 @@ export async function getCurrentSolPrice(){
         return poolInfo.poolPrice;
     }catch(e){
         console.log("Error getting current SOL price: ", e)
-
     }
-
 }
 
 export async function getCurrentPriceInUSD(tokenAddress:string){
@@ -91,7 +89,7 @@ export async function getCurrentPriceInUSD(tokenAddress:string){
 async function main(){
     // console.log(await getCurrentPriceInSOL("3XTp12PmKMHxB6YkejaGPUjMGBLKRGgzHWgJuVTsBCoP"));
     // console.log(await getCurrentSolPrice());
-    //console.log(await getCurrentPriceInUSD("4MBEqrtgabZ9G5EmKm7XTrcknZ1nWg3TrvFHZMrENgrd"));
-    //console.log(await getCurrentPriceInSOL("7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"));
+    console.log(await getCurrentPriceInUSD("7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"));
+    // console.log(await getCurrentPriceInSOL("7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"));
 }
-//main();
+main();

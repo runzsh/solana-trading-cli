@@ -36,8 +36,8 @@ export const wallet = Keypair.fromSecretKey(
 ); // your wallet
 export const private_key = process.env.PRIVATE_KEY; // your private key
 
-export const dev_endpoint = process.env.ALCHEMY_DEVNET_ENDPOINT || ""; // devnet endpoint, if you use devnet
-export const main_endpoint = process.env.ALCHEMY_MAINNET_ENDPOINT || ""; // mainnet endpoint
+export const dev_endpoint = process.env.SHYFT_DEVNET_ENDPOINT || ""; // devnet endpoint, if you use devnet
+export const main_endpoint = process.env.SHYFT_MAINNET_ENDPOINT || ""; // mainnet endpoint
 
 export const connection = new Connection(main_endpoint, "confirmed"); // mainnet connection
 export const dev_connection = new Connection(dev_endpoint, "confirmed"); // devnet connection

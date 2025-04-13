@@ -8,6 +8,7 @@ import {
 import { PublicKey } from "@solana/web3.js";
 import { wallet } from "../../helpers/config";
 import { getDecimals } from "../../helpers/util";
+import { swap } from "../../grpc_streaming_dev/grpc-copy-bot/src/raydium";
 const wsol = "So11111111111111111111111111111111111111112";
 
 /**
@@ -43,7 +44,8 @@ export async function sell(
       quoteResponse,
       wallet_PubKey
     );
-    const { confirmed, signature } = await finalizeTransaction(swapTransaction);
+    const { confirmed, signature } = await jitoFinalizeTransaction(swapTransaction);
+    // const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
       console.log("💸 Finished!");
       console.log("http://solscan.io/tx/" + signature);

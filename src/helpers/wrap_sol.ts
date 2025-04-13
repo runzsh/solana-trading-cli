@@ -1,9 +1,10 @@
 import { NATIVE_MINT, getOrCreateAssociatedTokenAccount, createSyncNativeInstruction,  } from "@solana/spl-token";
-import { wallet, connection } from "./config";
-import { Transaction, SystemProgram, LAMPORTS_PER_SOL,  sendAndConfirmTransaction } from "@solana/web3.js";
+import { wallet, connection, jito_fee } from "./config";
+import { Transaction, SystemProgram, LAMPORTS_PER_SOL,  sendAndConfirmTransaction, TransactionMessage, ComputeBudgetProgram, VersionedTransaction } from "@solana/web3.js";
 import {getSPLTokenBalance} from "./check_balance";
 import { program } from "commander";
 import { logger } from "./logger";
+import { jito_executeAndConfirm } from "../transactions/jito_tips_tx_executor";
 let wrap_size = 0;
 program
   .option("-s, --size <size>", "size of sol to wrap")
@@ -41,26 +42,56 @@ export async function wrap_sol(
         // sync wrapped SOL balance
         createSyncNativeInstruction(wSolAta.address)
     );
+    let latestBlockhash = await connection.getLatestBlockhash();
+    const messageV0 = new TransactionMessage({
+      payerKey: wallet.publicKey,
+      recentBlockhash: latestBlockhash.blockhash,
+      instructions: [
+        ...[
+          ComputeBudgetProgram.setComputeUnitLimit({
+            units: 70000,
+          }),
+        ],
+        ...transaction.instructions,
+      ],
+    }).compileToV0Message();
+  
+    const tx = new VersionedTransaction(messageV0);
+    tx.sign([wallet]);
+
+    let attempts = 0;
+    const maxAttempts = 3;
+  
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        const res = await jito_executeAndConfirm(
+          tx,
+          wallet,
+          latestBlockhash,
+          jito_fee
+        );
+        const signature = res.signature;
+        const confirmed = res.confirmed;
+  
+        if (signature) {
+          console.log(`Transaction successful: ${signature}`);
+          break;
+        } else {
+          console.log("jito fee transaction failed");
+          console.log(`Retry attempt ${attempts}`);
+        }
+      } catch (e: any) {
+        console.log(e);
+      }
+      latestBlockhash = await connection.getLatestBlockhash();
+    }
 
     // submit transaction
-    const txSignature = await sendAndConfirmTransaction(connection, transaction, [wallet]);
-
-    // validate transaction was successful
-    try {
-        const latestBlockhash = await connection.getLatestBlockhash();
-        await connection.confirmTransaction({
-            blockhash: latestBlockhash.blockhash,
-            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-            signature: txSignature,
-        }, 'confirmed');
-    } catch (error) {
-        console.log(`Error wrapping sol: ${error}`);
-    };
     // await for 3 second
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    await check_wsol_balance(wSolAta)
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await check_wsol_balance(wSolAta);
 
-    return txSignature;
 }
 
 export async function check_wsol_balance(wSolAta:any){

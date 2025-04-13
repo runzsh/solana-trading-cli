@@ -37,8 +37,8 @@ export async function buy(tokenToBuy:string, amountTokenOut:number, slippage:any
       quoteResponse,
       wallet_PubKey
     );
-    // const { confirmed, signature } = await jitoFinalizeTransaction(swapTransaction);
-    const { confirmed, signature } = await finalizeTransaction(swapTransaction);
+    const { confirmed, signature } = await jitoFinalizeTransaction(swapTransaction);
+    // const { confirmed, signature } = await finalizeTransaction(swapTransaction);
     if (confirmed) {
       console.log("💸 Finished!");
       console.log("http://solscan.io/tx/" + signature);

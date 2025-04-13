@@ -51,7 +51,24 @@ async function buy(side:string, address:string, no_of_sol:number, payer:Keypair)
     await swap(side, address, no_of_sol, -1, payer_wallet, "trade");
   } else {
     await swap(side, address, no_of_sol, -1, wallet, "trade");
+    // await swap(side, address, no_of_sol, -1, wallet, "volume");
   }
 }
 
 buy("buy", token_address, sol, payer_keypair);
+
+// // Testing
+// async function main() {
+//   const args = {
+//     side: "buy",
+//     address: "3pGyE8coXwBy8rx71zjtHDRrSA5TvKmuRgqwhK3Xmoon", // CHADETTE
+//     no_of_sol: 0.01,
+//     payer_keypair: "dummy_keypair_path_or_string",
+//   };
+
+//   await buy(args.side, args.address, args.no_of_sol, args.payer_keypair);
+// }
+
+// main().catch(err => {
+//   console.error("Error running main:", err);
+// });

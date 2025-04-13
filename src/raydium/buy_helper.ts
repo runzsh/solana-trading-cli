@@ -1,5 +1,5 @@
 import { Keypair } from "@solana/web3.js";
-import { swap } from "./Pool/swap";
+import { swap } from "../../swap_old";
 /**
  * Buys a specified amount of a token using a amount of sol.
  *

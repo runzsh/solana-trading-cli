@@ -14,6 +14,7 @@ import {
   VersionedTransaction,
   LAMPORTS_PER_SOL,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import { Decimal } from "decimal.js";
 import { BN } from "@project-serum/anchor";
@@ -41,8 +42,10 @@ import { jito_executeAndConfirm } from "../../transactions/jito_tips_tx_executor
 import { bloXroute_executeAndConfirm } from "../../transactions/bloXroute_tips_tx_executor";
 import { Keypair } from "@solana/web3.js";
 import { initSdk } from "../raydium_config";
+import { logger } from "../../utils";
 let tokenToPoolIdMap: any = {};
 let sdkCache = { sdk: null, expiry: 0 };
+
 /**
  * Performs a swap transaction using an Automated Market Maker (AMM) pool.
  * @param {Object} input - The input parameters for the swap transaction.
@@ -82,7 +85,7 @@ async function swapOnlyAmm(input: any) {
     currencyOut: input.outputToken,
     slippage: input.slippage,
   });
-
+  console.log(poolKeys.version)
   // -------- step 2: create instructions by SDK function --------
   const { innerTransaction } = await Liquidity.makeSwapFixedInInstruction(
     {
@@ -124,6 +127,19 @@ async function swapOnlyAmm(input: any) {
 
   const transaction = new VersionedTransaction(messageV0);
   transaction.sign([wallet, ...innerTransaction.signers]);
+  const rpcResponse = await connection.simulateTransaction(transaction, {
+    replaceRecentBlockhash: true,
+    sigVerify: false,
+});
+
+  const logs:any = rpcResponse.value.logs;
+  for(let i = 0; i < logs.length; i++) {
+    if(logs[i].includes('Program log: Error: InvalidSplTokenProgram')) {
+      logger.error('Please get some WSOLs to the wallet before swapping')
+      logger.error('You can run the command: ts-node src/helpers/wrap_sol.ts --size <size>')
+      return;
+    }
+  }
   let attempts = 0;
   const maxAttempts = 3;
 
@@ -158,14 +174,22 @@ async function swapOnlyAmm(input: any) {
   return { txid: null };
 }
 async function swapOnlyAmmUsingBloXRoute(input: any) {
+  let raydium: any = null;
+  if (sdkCache.sdk) {
+    raydium = sdkCache.sdk;
+  } else {
+    raydium = await initSdk();
+    sdkCache.sdk = raydium;
+  }
   const poolKeys: any = await formatAmmKeysById_swap(
     new PublicKey(input.targetPool)
   );
   assert(poolKeys, "cannot find the target pool");
-  const poolInfo = await Liquidity.fetchInfo({
-    connection: connection,
-    poolKeys: poolKeys,
-  });
+  // const poolInfo = await Liquidity.fetchInfo({
+  //   connection: connection,
+  //   poolKeys: poolKeys,
+  // });
+  const poolInfo = await raydium.liquidity.getRpcPoolInfo(input.targetPool);
   // -------- step 1: coumpute amount out --------
   const { amountOut, minAmountOut } = Liquidity.computeAmountOut({
     poolKeys: poolKeys,

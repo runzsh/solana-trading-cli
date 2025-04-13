@@ -146,7 +146,7 @@ export async function finalizeTransaction(swapTransaction: any) {
  * @param {string} tokenToSell - The token to sell.
  * @param {string} tokenToBuy - The token to buy.
  * @param {number} amountTokenOut - The amount of token to receive.
- * @param {number} slippage - The allowed slippage basis points (1bps = 0.01 percent).
+ * @param {number} slippage - The allowed slippage in basis points.
  * @returns {Promise<void>} - A promise that resolves when the swap transaction is completed.
  */
 export async function swap(
@@ -167,15 +167,15 @@ export async function swap(
       convertedAmountOfTokenOut,
       slippage
     );
+    console.log("Quote response: ", quoteResponse);
     const wallet_PubKey = wallet.publicKey.toBase58();
     const swapTransaction = await getSwapTransaction(
       quoteResponse,
       wallet_PubKey
     );
-    // const { confirmed, signature } = await jitoFinalizeTransaction(swapTransaction);
-    const { confirmed, signature } = await finalizeTransaction(swapTransaction);
+    // const { confirmed, signature } = await finalizeTransaction(swapTransaction);
+    const { confirmed, signature } = await jitoFinalizeTransaction(swapTransaction);
     if (confirmed) {
-      console.log("💸 Finished!");
       console.log("http://solscan.io/tx/" + signature);
     } else {
       console.log("Transaction failed");
