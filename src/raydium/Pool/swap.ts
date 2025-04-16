@@ -42,7 +42,8 @@ import { jito_executeAndConfirm } from "../../transactions/jito_tips_tx_executor
 import { bloXroute_executeAndConfirm } from "../../transactions/bloXroute_tips_tx_executor";
 import { Keypair } from "@solana/web3.js";
 import { initSdk } from "../raydium_config";
-import { logger } from "../../utils";
+import logger from "../../../logger";
+import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
 let tokenToPoolIdMap: any = {};
 let sdkCache = { sdk: null, expiry: 0 };
 
@@ -85,7 +86,7 @@ async function swapOnlyAmm(input: any) {
     currencyOut: input.outputToken,
     slippage: input.slippage,
   });
-  console.log(poolKeys.version)
+  logger.info(poolKeys.version)
   // -------- step 2: create instructions by SDK function --------
   const { innerTransaction } = await Liquidity.makeSwapFixedInInstruction(
     {
@@ -126,6 +127,7 @@ async function swapOnlyAmm(input: any) {
   }).compileToV0Message();
 
   const transaction = new VersionedTransaction(messageV0);
+  const og_signature = transaction.signatures[0];
   transaction.sign([wallet, ...innerTransaction.signers]);
   const rpcResponse = await connection.simulateTransaction(transaction, {
     replaceRecentBlockhash: true,
@@ -158,11 +160,11 @@ async function swapOnlyAmm(input: any) {
       if (signature) {
         return { txid: signature };
       } else {
-        console.log("jito fee transaction failed");
-        console.log(`Retry attempt ${attempts}`);
+        logger.info("jito fee transaction failed");
+        logger.info(`Retry attempt ${attempts}`);
       }
     } catch (e: any) {
-      console.log(e);
+      logger.info(e);
       if (e.signature) {
         return { txid: e.signature };
       }
@@ -170,8 +172,8 @@ async function swapOnlyAmm(input: any) {
     latestBlockhash = await connection.getLatestBlockhash();
   }
 
-  console.log("Transaction failed after maximum retry attempts");
-  return { txid: null };
+  logger.info("Transaction failed after maximum retry attempts");
+  return { og_signature, txid: null };
 }
 async function swapOnlyAmmUsingBloXRoute(input: any) {
   let raydium: any = null;
@@ -288,7 +290,7 @@ export async function swapForVolume(tokenAddr: string, sol_per_order: number) {
     signature = res.signature;
     confirmed = res.confirmed;
   } catch (e: any) {
-    console.log(e);
+    logger.info(e);
     return { confirmed: confirmed, txid: e.signature };
   }
   return { confirmed: confirmed, txid: signature };
@@ -301,21 +303,21 @@ export async function swapForVolume(tokenAddr: string, sol_per_order: number) {
  */
 async function swapOnlyAmmHelper(input: any) {
   const res: any = await swapOnlyAmm(input);
-  console.log("txids:", res.txid);
+  logger.info("txids:", res.txid);
   const response = await checkTx(res.txid);
   if (response) {
     if (input.side === "buy") {
-      console.log(
+      logger.info(
         `https://dexscreener.com/solana/${input.targetPool}?maker=${wallet.publicKey}`
       );
     } else {
-      console.log(
+      logger.info(
         `https://dexscreener.com/solana/${input.targetPool}?maker=${wallet.publicKey}`
       );
     }
-    console.log(`https://solscan.io/tx/${res.txid}?cluster=mainnet`);
+    logger.info(`https://solscan.io/tx/${res.txid}?cluster=mainnet`);
   } else {
-    console.log("Transaction failed");
+    logger.info("Transaction failed");
   }
 }
 /**
@@ -357,14 +359,14 @@ export async function swap(
     );
     const inputToken = DEFAULT_TOKEN.WSOL; // SOL
     let targetPool = null;
-    console.log("Fetching pool id...");
+    logger.info("Fetching pool id...");
     if (!(tokenAddress in tokenToPoolIdMap)) {
       targetPool = await fetchAMMPoolId(tokenAddress);
       tokenToPoolIdMap[tokenAddress] = targetPool;
     } else targetPool = tokenToPoolIdMap[tokenAddress];
-    console.log("Pool id fetched.");
+    logger.info("Pool id fetched.");
     if (targetPool === null) {
-      console.log(
+      logger.info(
         "Pool not found or raydium is not supported for this token. Exiting..."
       );
       return;
@@ -402,14 +404,14 @@ export async function swap(
     );
     const outputToken = DEFAULT_TOKEN.WSOL; // SOL
     let targetPool = null;
-    console.log("Fetching pool id...");
+    logger.info("Fetching pool id...");
     if (!(tokenAddress in tokenToPoolIdMap)) {
       targetPool = await fetchAMMPoolId(tokenAddress);
       tokenToPoolIdMap[tokenAddress] = targetPool;
     } else targetPool = tokenToPoolIdMap[tokenAddress];
-    console.log("Pool id fetched.");
+    logger.info("Pool id fetched.");
     if (targetPool === null) {
-      console.log(
+      logger.info(
         "Pool not found or raydium is not supported for this token. Exiting..."
       );
       return;

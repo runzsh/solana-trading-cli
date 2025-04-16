@@ -29,6 +29,9 @@ export const shyft_api_key = process.env.SHYFT_API_KEY; // your shyft api key
 export const helius_api_key = process.env.HELIUS_API_KEY; // your helius api key
 export const alchemy_api_key = process.env.ALCHEMY_API_KEY; // your alchemy api key
 
+export const grpc_xtoken = process.env.GRPC_XTOKEN; // your grpc xtoken
+export const grpc_url = process.env.GRPC_URL; // your grpc url
+
 export const jito_fee = process.env.JITO_FEE; // 0.00009 SOL
 
 export const wallet = Keypair.fromSecretKey(
@@ -47,15 +50,16 @@ export const dev_connection = new Connection(dev_endpoint, "confirmed"); // devn
 
 export const bloXRoute_auth_header = process.env.BLOXROUTE_AUTH_HEADER;
 export const bloXroute_fee = process.env.BLOXROUTE_FEE; // 0.001 SOL
+export const bloXRoute_api_env = process.env.BLOXROUTE_API_ENV; // testnet or mainnet
 
 // const stop_lost = process.env.STOP_LOST; // percentage of stop lost, if you use copy trade program
 // const take_profit = process.env.TAKE_PROFIT; // percentage of take profit, if you use copy trade program
 export const smart_money_wallet = process.env.SMART_MONEY_WALLET; // if you use copy trade program
 
-//const connection = new Connection(main_endpoint, { // if you use copy trade program
+// const connection = new Connection(main_endpoint, { // if you use copy trade program
 //  wsEndpoint: RPC_Websocket_endpoint,
 //  commitment: "confirmed",
-//});
+// });
 //const second_connection = new Connection(second_main_endpoint, { // if you use copy trade program
 //  wsEndpoint: second_RPC_Websocket_endpoint,
 //  commitment: "confirmed",
