@@ -11,7 +11,6 @@ import {
     connection,
     bloXRoute_auth_header,
     bloXRoute_api_env,
-    wsol
 } from "./src/helpers/config";
 import { sell } from "./src/raydium/sell_helper";
 import { buy } from "./src/raydium/buy_helper";
@@ -64,7 +63,7 @@ async function main() {
                     logger.info("Received new pool");
                     logger.info("Pool Details:\n" + JSON.stringify(pool, null, 2));
                     logger.info("Closing stream...");
-                    provider.close();
+                    await provider.close();
                     break;
                 }
             }
@@ -77,9 +76,9 @@ async function main() {
                 continue;
             }
         
-            const inToken: string = pool?.pool?.token1MintAddress ?? ""; // WSOL
-            const outToken: string = pool?.pool?.token2MintAddress ?? "";
-            const solReserves: number = Number(pool?.pool?.token2Reserves ?? 0);
+            const outToken: string = pool?.pool?.token1MintAddress ?? ""; // Base
+            const WSOL: string = pool?.pool?.token2MintAddress ?? ""; // WSOL (Quote)
+            const solReserves: number = Number(pool?.pool?.token2Reserves ?? 0) / 10 ** 9;
             
             if (solReserves < 150) {
                 logger.warn("Low liquidity in the pool. Skipping this trade.");
@@ -87,10 +86,10 @@ async function main() {
             }
 
             const sol: number = 0.01; // AMOUNT of WSOL to SWAP
-            const timeout: number = 180; // Trade exposure time in seconds
+            const timeout: number = 120; // Trade exposure time in seconds
 
             // Monitoring
-            await subscribeToPriceMcap(outToken, inToken, timeout);
+            await subscribeToPriceMcap(outToken, WSOL, timeout);
             logger.info("Monitoring started successfully");
 
             // Opening a trade using Raydium
