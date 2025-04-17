@@ -4,7 +4,7 @@ import {
     TESTNET_API_WS, 
     WsProvider
 } from "./src/bxsolana";
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import {
     wallet,
     private_key,
@@ -13,8 +13,8 @@ import {
     bloXRoute_api_env,
     wsol
 } from "./src/helpers/config";
-import { sell } from "./src/raydium/sell";
-import { buy } from "./src/raydium/buy";
+import { sell } from "./src/raydium/sell_helper";
+import { buy } from "./src/raydium/buy_helper";
 import { getSPLTokenBalance } from "./src/helpers/check_balance";
 import { subscribeToPriceMcap } from "./src/raydium/real_time_token_price_marketcap_streaming/monitor";
 import logger from './logger';
@@ -74,7 +74,7 @@ async function main() {
             const poolAddress: string = pool?.pool?.poolAddress ?? "";
             if (poolAddress === "") {
                 logger.warn("No pool address found for this trade. Skipping.");
-                return;
+                continue;
             }
         
             const inToken: string = pool?.pool?.token1MintAddress ?? ""; // WSOL
@@ -83,7 +83,7 @@ async function main() {
             
             if (solReserves < 150) {
                 logger.warn("Low liquidity in the pool. Skipping this trade.");
-                return;
+                continue;
             }
 
             const sol: number = 0.01; // AMOUNT of WSOL to SWAP
@@ -92,60 +92,61 @@ async function main() {
             // Monitoring
             await subscribeToPriceMcap(outToken, inToken, timeout);
             logger.info("Monitoring started successfully");
+
+            // Opening a trade using Raydium
+            logger.info("Opening trade...");
+            await buy("buy", outToken, sol, wallet);
+
+            // Check balance
+            const outTokenPubkey = new PublicKey(outToken);
+            const outTokenBalance = await getSPLTokenBalance(connection, outTokenPubkey, wallet.publicKey);
+            if (outTokenBalance === 0) {
+                logger.warn("No balance found for this token. Trade failed. Skipping.");
+                continue;
+            }
+            else {
+                logger.info("Trade executed successfully! Token balance: " + outTokenBalance);
+            }
+
+            // Entry Trade Info
+            const buy_trade = getLatestTokenUpdate(outToken, pathForPrice);
+            const entry_price = buy_trade?.priceInSOL;
+
+            if (entry_price === undefined) {
+                logger.warn("Entry price is undefined. Skipping this trade.");
+                continue;
+            }
+
+            const startTime = Date.now();
+            const takeProfit = entry_price * 1.10; // 10% profit
+            let stopLoss: number = entry_price * 0.95; // 5% loss
+
+            while ((Date.now() - startTime) / 1000 < timeout) {
+                const current_trade = getLatestTokenUpdate(outToken, pathForPrice);
+                let current_price = current_trade?.priceInSOL;
+
+                if (current_price !== undefined && current_price >= takeProfit) {
+                logger.info(`Take Profit hit! Current price: ${current_price}, Selling...`);
+                await sell("sell", outToken, 100, wallet);
+                break;
+                } else if (current_price !== undefined && current_price <= stopLoss) {
+                logger.info(`Stop Loss hit! Current price: ${current_price}, Selling...`);
+                await sell("sell", outToken, 100, wallet);
+                break;
+                }
+                
+                if (current_price !== undefined) {
+                    stopLoss = current_price * 0.95; // Update stop loss to 5% below current price
+                }
+                logger.info(`Current price: ${current_price}, Monitoring...`);
+                await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before next check
+            }
+
+            logger.info("Exiting monitoring loop for this pool.");
                     
         } catch (error) {
             logger.error("An error occurred:", error);
         }
-
-
-        // // Opening a trade using Raydium
-        // logger.info("Opening trade...");
-        // buy("buy", outToken, sol, wallet);
-
-        // // Check balance
-        // const outTokenPubkey = new PublicKey(outToken);
-        // const outTokenBalance = await getSPLTokenBalance(connection, outTokenPubkey, wallet.publicKey);
-        // if (outTokenBalance === 0) {
-        //     logger.warn("No balance found for this token. Trade failed. Skipping.");
-        //     continue;
-        // }
-        // else {
-        //     logger.info("Trade executed successfully! Token balance: " + outTokenBalance);
-        // }
-
-        // // Entry Trade Info
-        // const buy_trade = getLatestTokenUpdate(outToken, pathForPrice);
-        // const entry_price = buy_trade?.priceInSOL;
-
-        // if (entry_price === undefined) {
-        //     logger.warn("Entry price is undefined. Skipping this trade.");
-        //     continue;
-        // }
-
-        // const startTime = Date.now();
-        // const takeProfit = entry_price * 1.10; // 10% profit
-        // const stopLoss = entry_price * 0.95; // 5% loss
-
-        // while ((Date.now() - startTime) / 1000 < timeout) {
-        //     const current_trade = getLatestTokenUpdate(outToken, pathForPrice);
-        //     const current_price = current_trade?.priceInSOL;
-
-        //     if (current_price !== undefined && current_price >= takeProfit) {
-        //     logger.info(`Take Profit hit! Current price: ${current_price}, Selling...`);
-        //     sell("sell", outToken, 100, wallet);
-        //     break;
-        //     } else if (current_price !== undefined && current_price <= stopLoss) {
-        //     logger.info(`Stop Loss hit! Current price: ${current_price}, Selling...`);
-        //     sell("sell", outToken, 100, wallet);
-        //     break;
-        //     }
-            
-        //     // const stopLoss = current_price * 0.95; // Update stop loss to 5% below current price
-        //     logger.info(`Current price: ${current_price}, Monitoring...`);
-        //     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before next check
-        // }
-
-        // logger.info("Exiting monitoring loop for this pool.");
 
         logger.info("Moving to next pool...");
     }

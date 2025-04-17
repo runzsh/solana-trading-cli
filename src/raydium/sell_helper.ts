@@ -1,5 +1,5 @@
 import { Keypair } from "@solana/web3.js";
-import { swap } from "../../swap_old";
+import { swap } from "./Pool/swap";
 
 /**
  * Sells a specified percentage of a token.
