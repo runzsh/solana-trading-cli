@@ -68,7 +68,7 @@ export class TransactionFormatter {
             accounts: any;
           }) => ({
             programIdIndex: programIdIndex,
-            accounts: [...accounts] || [],
+            accounts: [...(accounts || [])],
             data: base58.encode(Buffer.from(data || "", "base64")),
           }),
         ),
@@ -98,7 +98,7 @@ export class TransactionFormatter {
             data: any;
           }) => ({
             programIdIndex: programIdIndex,
-            accountKeyIndexes: [...accounts] || [],
+            accountKeyIndexes: [...(accounts || [])],
             data: Uint8Array.from(Buffer.from(data || "", "base64")),
           }),
         ),

@@ -118,7 +118,7 @@ const logger = createLogger({
         })
     ),
     transports: [
-        new transports.File({ filename: 'bot1.log' }),
+        new transports.File({ filename: 'shyft_pools.log' }),
         new transports.Console()
     ]
 });

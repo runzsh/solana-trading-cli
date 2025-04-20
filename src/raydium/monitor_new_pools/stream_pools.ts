@@ -13,25 +13,7 @@ import Client, {
   import { TransactionFormatter } from "./utils/transaction-formatter";
   import { RaydiumAmmParser } from "./utils/raydium-amm-parser";
   import { grpc_url, grpc_xtoken } from "../../helpers/config";
-
-  import * as fs from "fs";
-  import * as path from "path";
-
-  const logFilePath = path.join(__dirname, "grpc_lp.log");
-  const logStream = fs.createWriteStream(logFilePath, { flags: "a" });
-
-  function getISTTimestamp(): string {
-    return new Date().toLocaleString("sv-SE", {
-      timeZone: "Asia/Kolkata",
-      hour12: false,
-    }).replace(" ", "T"); // returns "2025-04-15T18:12:34"
-  }
-  
-  function logToFile(message: string): void {
-    const timestamp = getISTTimestamp();
-    logStream.write(`[${timestamp}] ${message}\n`);
-  }
-
+  import logger from "../../../logger";
   
   interface SubscribeRequest {
     accounts: { [key: string]: SubscribeRequestFilterAccounts };
@@ -105,7 +87,7 @@ import Client, {
     // Create `error` / `end` handler
     const streamClosed = new Promise<void>((resolve, reject) => {
       stream.on("error", (error) => {
-        logToFile(`ERROR: ${error}`);
+        logger.info(`ERROR: ${error}`);
         reject(error);
         stream.end();
       });
@@ -150,7 +132,7 @@ import Client, {
           const startTime = new Date(openTime * 1000); 
           const initialBalance = parseInfo.initPcAmount;
 
-          logToFile(`
+          logger.info(`
             New LP Found https://translator.shyft.to/tx/${txn.transaction.signatures[0]}
             
             Token Address   | ${tokenAddress}
@@ -170,7 +152,7 @@ import Client, {
       }
   }catch(error){
     if(error){
-      logToFile("Error")
+      logger.info("Error")
     }
   }
 });
