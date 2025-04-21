@@ -26,7 +26,7 @@ async function main() {
             const pool = await getNextNewPool(client, req);
             logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
         
-            const poolAddress: string = pool?.Pool ?? "";
+            const poolAddress: string = pool?.pool ?? "";
             if (poolAddress === "") {
                 logger.warn("No pool address found for this trade. Skipping.");
                 continue;

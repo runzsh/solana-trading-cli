@@ -178,6 +178,7 @@ let poolStreamController: ReadableStreamDefaultController<any> | null = null;
 export async function getNextNewPool(client: Client, args: SubscribeRequest): Promise<any> {
   return new Promise(async (resolve, reject) => {
     const stream = await client.subscribe();
+    logger.info("Waiting for new pool...");
 
     // Clean-up helpers
     const closeStream = () => {
@@ -230,9 +231,10 @@ export async function getNextNewPool(client: Client, args: SubscribeRequest): Pr
           startTime: new Date(parseInfo.openTime * 1000),
           initialBalance: parseInfo.initPcAmount / 1e9,
           tx: txn.transaction.signatures[0],
+          shyft: `https://translator.shyft.to/tx/${txn.transaction.signatures[0]}`,
+          solscan: `https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet`,
         };
 
-        // logger.info(`Detected new pool: ${JSON.stringify(poolData, null, 2)}`);
         closeStream();
         resolve(poolData);
       } catch (err) {
@@ -250,30 +252,30 @@ export async function getNextNewPool(client: Client, args: SubscribeRequest): Pr
   });
 }
 
-async function main() {
-  while (true) {
-    try {
-      const pool = await getNextNewPool(client, req);
+// async function main() {
+//   while (true) {
+//     try {
+//       const pool = await getNextNewPool(client, req);
 
-      // 💥 Process your pool here
-      console.log("🎯 New Pool:");
-      console.log(`TX: https://translator.shyft.to/tx/${pool.tx}`);
-      console.log(`Token Address: ${pool.tokenAddress}`);
-      console.log(`SOL Address: ${pool.solAddress}`);
-      console.log(`LP Mint: ${pool.lpMint}`);
-      console.log(`Initial Balance: ${pool.initialBalance} SOL`);
-      console.log(`Start Time: ${pool.startTime}`);
-      console.log(`Owner/Dev Wallet: ${pool.dev_wallet}`);
-      console.log("------------------------------");
+//       // 💥 Process your pool here
+//       console.log("🎯 New Pool:");
+//       console.log(`TX: https://translator.shyft.to/tx/${pool.tx}`);
+//       console.log(`Token Address: ${pool.tokenAddress}`);
+//       console.log(`SOL Address: ${pool.solAddress}`);
+//       console.log(`LP Mint: ${pool.lpMint}`);
+//       console.log(`Initial Balance: ${pool.initialBalance} SOL`);
+//       console.log(`Start Time: ${pool.startTime}`);
+//       console.log(`Owner/Dev Wallet: ${pool.dev_wallet}`);
+//       console.log("------------------------------");
 
-      // 💤 Optionally sleep before restarting
-      await new Promise((r) => setTimeout(r, 1000));
+//       // 💤 Optionally sleep before restarting
+//       await new Promise((r) => setTimeout(r, 1000));
 
-    } catch (err) {
-      console.error("Error waiting for new pool. Retrying...", err);
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-  }
-}
+//     } catch (err) {
+//       console.error("Error waiting for new pool. Retrying...", err);
+//       await new Promise((r) => setTimeout(r, 1000));
+//     }
+//   }
+// }
 
-main().catch(console.error);
+// main().catch(console.error);
