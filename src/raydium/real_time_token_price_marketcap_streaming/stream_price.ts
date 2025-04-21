@@ -93,18 +93,6 @@ const client = new Client(
                    ${baseBal}
       `)
      }
-
-      // console.log(`
-      //   CA : ${mint}
-      //   Supply : ${supply}
-      //   BaseVault : ${baseVault}
-      //   quoteVault : ${quoteVault}
-      //   decimal : ${tokenInfo.decimal}
-      //   Price : $${price}
-      //   MarketCap : $${marketcap}
-      //   PoolInfo : ${quoteBal}($${quoteBal$})
-      //             ${baseBal}
-      // `)
   }catch(error){
     if(error){
     }

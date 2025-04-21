@@ -1,3 +1,9 @@
+import {
+    LOCAL_API_WS, 
+    MAINNET_API_UK_WS,
+    TESTNET_API_WS, 
+    WsProvider
+} from "./src/bxsolana";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import {
     wallet,
@@ -10,10 +16,8 @@ import { sell } from "./src/raydium/sell_helper";
 import { buy } from "./src/raydium/buy_helper";
 import { getSPLTokenBalance } from "./src/helpers/check_balance";
 import { subscribeToPriceMcap } from "./src/raydium/real_time_token_price_marketcap_streaming/monitor";
-import { client, req, getNextNewPool } from "./src/raydium/monitor_new_pools/stream_pools";
 import logger from './logger';
 import { getLatestTokenUpdate, getTradeBySignature } from "./logger";
-import { token } from "@project-serum/anchor/dist/cjs/utils";
 
 const pathForPrice = `./src/raydium/real_time_token_price_marketcap_streaming/`;
 let pool: any = null;
@@ -21,20 +25,60 @@ let pool: any = null;
 async function main() {
     logger.info("starting BOT I...");
 
+    let provider: WsProvider;
+
+    if (bloXRoute_api_env === "testnet") {
+        provider = new WsProvider(
+            bloXRoute_auth_header || "",
+            private_key,
+            TESTNET_API_WS
+        );
+    } else if (bloXRoute_api_env === "mainnet") {
+        provider = new WsProvider(
+            bloXRoute_auth_header || "",
+            private_key,
+            MAINNET_API_UK_WS
+        );
+    } else {
+        provider = new WsProvider(
+            bloXRoute_auth_header || "",
+            private_key,
+            LOCAL_API_WS
+        );
+    }
+
     while (true) {
         try {
-            const pool = await getNextNewPool(client, req);
-            logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
+            await provider.connect();
+            logger.info("Subscribing for new raydium pool updates");
         
-            const poolAddress: string = pool?.Pool ?? "";
+            const req = await provider.getNewRaydiumPoolsStream({});
+            let count = 0;
+            let pool: any = null;
+        
+            for await (const tr of req) {
+                pool = tr;
+                count++;
+                if (count === 1) {
+                    logger.info("Received new pool");
+                    logger.info("Pool Details:\n" + JSON.stringify(pool, null, 2));
+                    logger.info("Closing stream...");
+                    await provider.close();
+                    break;
+                }
+            }
+        
+            logger.info("Moving forward to trade...");
+        
+            const poolAddress: string = pool?.pool?.poolAddress ?? "";
             if (poolAddress === "") {
                 logger.warn("No pool address found for this trade. Skipping.");
                 continue;
             }
-            
-            const tokenAddress: string = pool?.tokenAddress ?? ""; // Base
-            const solAddress: string = pool?.solAddress ?? ""; // WSOL (Quote)
-            const solReserves: number = Number(pool?.initialBalance ?? 0);
+        
+            const outToken: string = pool?.pool?.token1MintAddress ?? ""; // Base
+            const WSOL: string = pool?.pool?.token2MintAddress ?? ""; // WSOL (Quote)
+            const solReserves: number = Number(pool?.pool?.token2Reserves ?? 0) / 10 ** 9;
             
             if (solReserves < 150) {
                 logger.warn("Low liquidity in the pool. Skipping this trade.");
@@ -45,15 +89,15 @@ async function main() {
             const timeout: number = 120; // Trade exposure time in seconds
 
             // Monitoring
-            await subscribeToPriceMcap(tokenAddress, solAddress, timeout);
+            await subscribeToPriceMcap(outToken, WSOL, timeout);
             logger.info("Monitoring started successfully");
 
             // Opening a trade using Raydium
             logger.info("Opening trade...");
-            await buy("buy", tokenAddress, sol, wallet);
+            await buy("buy", outToken, sol, wallet);
 
             // Check balance
-            const outTokenPubkey = new PublicKey(tokenAddress);
+            const outTokenPubkey = new PublicKey(outToken);
             const outTokenBalance = await getSPLTokenBalance(connection, outTokenPubkey, wallet.publicKey);
             if (outTokenBalance === 0) {
                 logger.warn("No balance found for this token. Trade failed. Skipping.");
@@ -64,7 +108,7 @@ async function main() {
             }
 
             // Entry Trade Info
-            const buy_trade = getLatestTokenUpdate(tokenAddress, pathForPrice);
+            const buy_trade = getLatestTokenUpdate(outToken, pathForPrice);
             const entry_price = buy_trade?.priceInSOL;
 
             if (entry_price === undefined) {
@@ -77,16 +121,16 @@ async function main() {
             let stopLoss: number = entry_price * 0.95; // 5% loss
 
             while ((Date.now() - startTime) / 1000 < timeout) {
-                const current_trade = getLatestTokenUpdate(tokenAddress, pathForPrice);
+                const current_trade = getLatestTokenUpdate(outToken, pathForPrice);
                 let current_price = current_trade?.priceInSOL;
 
                 if (current_price !== undefined && current_price >= takeProfit) {
                 logger.info(`Take Profit hit! Current price: ${current_price}, Selling...`);
-                await sell("sell", tokenAddress, 100, wallet);
+                await sell("sell", outToken, 100, wallet);
                 break;
                 } else if (current_price !== undefined && current_price <= stopLoss) {
                 logger.info(`Stop Loss hit! Current price: ${current_price}, Selling...`);
-                await sell("sell", tokenAddress, 100, wallet);
+                await sell("sell", outToken, 100, wallet);
                 break;
                 }
                 
@@ -100,8 +144,7 @@ async function main() {
             logger.info("Exiting monitoring loop for this pool.");
                     
         } catch (error) {
-            logger.error("Error waiting for new pool. Retrying...", error);
-            await new Promise((r) => setTimeout(r, 1000));
+            logger.error("An error occurred:", error);
         }
 
         logger.info("Moving to next pool...");
@@ -116,3 +159,4 @@ run().then(() => {
     logger.info("done!");
     process.exit(0);
 });
+
