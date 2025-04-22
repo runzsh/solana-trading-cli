@@ -328,6 +328,7 @@ async function swapOnlyAmmHelper(input: any): Promise<string | null> {
  *
  * @param {string} side - The side of the swap operation ("buy" or "sell").
  * @param {string} tokenAddr - The address of the token involved in the swap.
+ * @param {string} poolID - The ID of the AMM pool.
  * @param {number} buy_AmountOfSol - The amount of SOL to buy (only applicable for "buy" side).
  * @param {number} sell_PercentageOfToken - The percentage of the token to sell (only applicable for "sell" side).
  * @param {object} payer_wallet - The payer's wallet object.
@@ -336,6 +337,7 @@ async function swapOnlyAmmHelper(input: any): Promise<string | null> {
 export async function swap(
   side: string,
   tokenAddr: string,
+  poolID: string,
   buy_AmountOfSol: number,
   sell_PercentageOfToken: number,
   payer_wallet: Keypair,
@@ -361,19 +363,20 @@ export async function swap(
       await getDecimals(tokenAccount)
     );
     const inputToken = DEFAULT_TOKEN.WSOL; // SOL
-    let targetPool = null;
-    logger.info("Fetching pool id...");
-    if (!(tokenAddress in tokenToPoolIdMap)) {
-      targetPool = await fetchAMMPoolId(tokenAddress);
-      tokenToPoolIdMap[tokenAddress] = targetPool;
-    } else targetPool = tokenToPoolIdMap[tokenAddress];
-    logger.info("Pool id fetched.");
-    if (targetPool === null) {
-      logger.info(
-        "Pool not found or raydium is not supported for this token. Exiting..."
-      );
-      return;
-    }
+    const targetPool = poolID; // poolID
+    // let targetPool = null;
+    // logger.info("Fetching pool id...");
+    // if (!(tokenAddress in tokenToPoolIdMap)) {
+    //   targetPool = await fetchAMMPoolId(tokenAddress);
+    //   tokenToPoolIdMap[tokenAddress] = targetPool;
+    // } else targetPool = tokenToPoolIdMap[tokenAddress];
+    // logger.info("Pool id fetched.");
+    // if (targetPool === null) {
+    //   logger.info(
+    //     "Pool not found or raydium is not supported for this token. Exiting..."
+    //   );
+    //   return;
+    // }
     const amountOfSol = new Decimal(buy_AmountOfSol);
     const inputTokenAmount = new TokenAmount(
       inputToken,
@@ -406,19 +409,19 @@ export async function swap(
       tokenName
     );
     const outputToken = DEFAULT_TOKEN.WSOL; // SOL
-    let targetPool = null;
-    logger.info("Fetching pool id...");
-    if (!(tokenAddress in tokenToPoolIdMap)) {
-      targetPool = await fetchAMMPoolId(tokenAddress);
-      tokenToPoolIdMap[tokenAddress] = targetPool;
-    } else targetPool = tokenToPoolIdMap[tokenAddress];
-    logger.info("Pool id fetched.");
-    if (targetPool === null) {
-      logger.info(
-        "Pool not found or raydium is not supported for this token. Exiting..."
-      );
-      return;
-    }
+    let targetPool = poolID;
+    // logger.info("Fetching pool id...");
+    // if (!(tokenAddress in tokenToPoolIdMap)) {
+    //   targetPool = await fetchAMMPoolId(tokenAddress);
+    //   tokenToPoolIdMap[tokenAddress] = targetPool;
+    // } else targetPool = tokenToPoolIdMap[tokenAddress];
+    // logger.info("Pool id fetched.");
+    // if (targetPool === null) {
+    //   logger.info(
+    //     "Pool not found or raydium is not supported for this token. Exiting..."
+    //   );
+    //   return;
+    // }
 
     const balnaceOfToken = await getSPLTokenBalance(
       connection,

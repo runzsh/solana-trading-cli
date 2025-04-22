@@ -5,23 +5,26 @@ import { swap } from "./Pool/swap";
  *
  * @param {string} side - The side of the trade (buy/sell).
  * @param {string} address - The address of the token.
+ * @param {string} poolID - The ID of the amm pool.
  * @param {number} no_of_sol - The number of SOL to be used for the trade.
  * @param {Keypair} payer - The payer of the transaction.
  * @returns {Promise<string | null>} - A promise that resolves to the transaction ID if successful, otherwise null.
  */
-export async function buy(side:string, address:string, no_of_sol:number, payer:Keypair): Promise<string | null> {
-  return await swap(side, address, no_of_sol, -1, payer, "trade");
+export async function buy(side:string, address:string, poolID:string, no_of_sol:number, payer:Keypair): Promise<string | null> {
+  return await swap(side, address, poolID, no_of_sol, -1, payer, "trade");
 }
 
 export async function get_buy_transaction(
   side:string,
   tokenAddr:string,
+  poolID:string,
   buy_AmountOfSol:number,
   payer_wallet:Keypair
 ) {
   const innerTransaction = await swap(
     side,
     tokenAddr,
+    poolID,
     buy_AmountOfSol,
     -1,
     payer_wallet,

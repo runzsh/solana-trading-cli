@@ -15,11 +15,12 @@ import { client, req, getNextNewPool } from "./src/raydium/monitor_new_pools/str
 import logger from './logger';
 import { getLatestTokenUpdate, getTradeBySignature } from "./logger";
 import { token } from "@project-serum/anchor/dist/cjs/utils";
+import { time } from "console";
 
 const pathForPrice = `./src/raydium/real_time_token_price_marketcap_streaming/`;
 let pool: any = null;
 
-async function monitorPriceAndSell(tokenAddress: string, pathForPrice: any, wallet: any, entry_price: number, takeProfit: number, stopLoss: number, timeout: number) {
+async function monitorPriceAndSell(tokenAddress: string, poolID: string, pathForPrice: any, wallet: any, entry_price: number, takeProfit: number, stopLoss: number, timeout: number) {
     const startTime = Date.now();
 
     while ((Date.now() - startTime) / 1000 < timeout - 5) {
@@ -31,7 +32,7 @@ async function monitorPriceAndSell(tokenAddress: string, pathForPrice: any, wall
                 logger.info(`Take Profit hit! Current price: ${current_price}, Selling...`);
                 let attempts = 0;
                 while (attempts < 3) {
-                    const sell_res = await sell("sell", tokenAddress, 100, wallet);
+                    const sell_res = await sell("sell", tokenAddress, poolID, 100, wallet);
                     if (sell_res !== null) {
                         logger.info("Sell successful.");
                         break;
@@ -47,7 +48,7 @@ async function monitorPriceAndSell(tokenAddress: string, pathForPrice: any, wall
                 logger.info(`Stop Loss hit! Current price: ${current_price}, Selling...`);
                 let attempts = 0;
                 while (attempts < 3) {
-                    const sell_res = await sell("sell", tokenAddress, 100, wallet);
+                    const sell_res = await sell("sell", tokenAddress, poolID, 100, wallet);
                     if (sell_res !== null) {
                         logger.info("Sell successful.");
                         break;
@@ -76,7 +77,7 @@ async function monitorPriceAndSell(tokenAddress: string, pathForPrice: any, wall
     logger.info("Exiting monitoring loop for this pool.");
     let attempts = 0;
     while (attempts < 3) {
-        const sell_res = await sell("sell", tokenAddress, 100, wallet);
+        const sell_res = await sell("sell", tokenAddress, poolID, 100, wallet);
         if (sell_res !== null) {
             logger.info("Final sell successful.");
             break;
@@ -91,35 +92,40 @@ async function monitorPriceAndSell(tokenAddress: string, pathForPrice: any, wall
 
 async function main() {
     logger.info("starting BOT I...");
-    while (true) {
+    let count: number = 0
+    while (count < 1) {
         try {
-            logger.info("Waiting for new pool...");
-            const pool = await getNextNewPool(client, req);
-            logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
+            count++;
+            // const pool = await getNextNewPool(client, req);
+            // logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
         
-            const poolAddress: string = pool?.pool ?? "";
-            if (poolAddress === "") {
-                logger.warn("No pool address found for this trade. Skipping.");
-                continue;
-            }
+            // const poolAddress: string = pool?.pool ?? "";
+            // if (poolAddress === "") {
+            //     logger.warn("No pool address found for this trade. Skipping.");
+            //     continue;
+            // }
             
-            const tokenAddress: string = pool?.tokenAddress ?? ""; // Base
-            const solAddress: string = pool?.solAddress ?? ""; // WSOL (Quote)
-            const solReserves: number = Number(pool?.initialBalance ?? 0);
+            // const tokenAddress: string = pool?.tokenAddress ?? ""; // Base
+            // const solAddress: string = pool?.solAddress ?? ""; // WSOL (Quote)
+            // const solReserves: number = Number(pool?.initialBalance ?? 0);
             
-            if (solReserves < 150) {
-                logger.warn("Low reserves in the pool. Skipping this trade.");
-                continue;
-            }
+            // if (solReserves < 150) {
+            //     logger.warn("Low reserves in the pool. Skipping this trade.");
+            //     continue;
+            // }
         
-            // const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
-            // const solAddress: string = wsol; // WSOL (Quote)
+            const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
+            const solAddress: string = wsol; // WSOL (Quote)
+            const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";
             const sol: number = 0.01; // WSOL to swap
-            const timeout: number = 60; // Trade exposure time
+            let timeout: number = 60;
+            // if (solReserves === 150) {
+            //     timeout = 40; // Trade exposure time
+            // }
     
             // Step 1: Buy token
             logger.info("Opening trade...");
-            const buy_res = await buy("buy", tokenAddress, sol, wallet);
+            const buy_res = await buy("buy", tokenAddress, poolAddress, sol, wallet);
             if (buy_res === null) {
                 logger.error("Failed to open trade. Moving to the next pool...");
                 continue;
@@ -127,7 +133,7 @@ async function main() {
             logger.info("Trade opened successfully");
 
             // Step 2: Start monitoring
-            subscribeToPriceMcap(tokenAddress, solAddress, timeout);
+            subscribeToPriceMcap(tokenAddress, solAddress, timeout + 5);
             logger.info("Price streaming started successfully");
 
             // Step 3: Entry price
@@ -145,7 +151,7 @@ async function main() {
     
             // Step 4: Monitor price for take profit or stop loss
             logger.info(`Monitoring price...`);
-            await monitorPriceAndSell(tokenAddress, pathForPrice, wallet, entry_price, takeProfit, stopLoss, timeout);
+            await monitorPriceAndSell(tokenAddress, poolAddress, pathForPrice, wallet, entry_price, takeProfit, stopLoss, timeout);
             logger.info("Monitoring completed successfully");
 
             } catch (error) {

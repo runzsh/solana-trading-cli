@@ -91,7 +91,7 @@ export async function getInfoFromDexscreener(tokenAddress: string) {
     }
     if (info !== undefined && info.websites.length > 0)
       res.websiteURL = info.websites[0].url;
-    //console.log(res);
+    console.log(res);
     return res;
   } catch (error) {
     console.log(error);
@@ -99,4 +99,4 @@ export async function getInfoFromDexscreener(tokenAddress: string) {
   }
 }
 
-//getInfoFromDexscreener("4cfyJweLzYvvPAjztjWs8QpzXqSuHsY572EwsebWpump");
+// getInfoFromDexscreener("4cfyJweLzYvvPAjztjWs8QpzXqSuHsY572EwsebWpump");

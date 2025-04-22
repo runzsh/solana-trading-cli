@@ -5,18 +5,24 @@ import { swap } from "./Pool/swap";
  * Sells a specified percentage of a token.
  * @param {string} side - The side of the trade (buy or sell).
  * @param {string} address - The address of the token.
+ * @param {string} poolID - The ID of the amm pool.
  * @param {number} sell_percentage - The percentage of the token to sell.
  * @param {string} payer - The payer of the transaction.
  * @returns {Promise<string | null>} - A promise that resolves to the transaction ID if successful, otherwise null.
  */
-export async function sell(side:string, address:string, sell_percentage:number, payer:Keypair): Promise<string | null> {
-  return await swap(side, address, -1, sell_percentage, payer, "trade");
+export async function sell(side:string, address:string, poolID:string, sell_percentage:number, payer:Keypair): Promise<string | null> {
+  return await swap(side, address, poolID, -1, sell_percentage, payer, "trade");
 }
 
-export async function get_sell_transaction(side:string, tokenAddr:string, payer_wallet:Keypair) {
+export async function get_sell_transaction(
+  side:string, 
+  tokenAddr:string,
+  poolID: string,
+  payer_wallet:Keypair) {
   const innerTransaction = await swap(
     side,
     tokenAddr,
+    poolID,
     -1,
     100,
     payer_wallet,
