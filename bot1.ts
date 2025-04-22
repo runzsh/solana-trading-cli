@@ -92,31 +92,29 @@ async function monitorPriceAndSell(tokenAddress: string, poolID: string, pathFor
 
 async function main() {
     logger.info("starting BOT I...");
-    let count: number = 0
-    while (count < 1) {
+    while (true) {
         try {
-            count++;
-            // const pool = await getNextNewPool(client, req);
-            // logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
+            const pool = await getNextNewPool(client, req);
+            logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
         
-            // const poolAddress: string = pool?.pool ?? "";
-            // if (poolAddress === "") {
-            //     logger.warn("No pool address found for this trade. Skipping.");
-            //     continue;
-            // }
+            const poolAddress: string = pool?.pool ?? "";
+            if (poolAddress === "") {
+                logger.warn("No pool address found for this trade. Skipping.");
+                continue;
+            }
             
-            // const tokenAddress: string = pool?.tokenAddress ?? ""; // Base
-            // const solAddress: string = pool?.solAddress ?? ""; // WSOL (Quote)
-            // const solReserves: number = Number(pool?.initialBalance ?? 0);
+            const tokenAddress: string = pool?.tokenAddress ?? ""; // Base
+            const solAddress: string = pool?.solAddress ?? ""; // WSOL (Quote)
+            const solReserves: number = Number(pool?.initialBalance ?? 0);
             
-            // if (solReserves < 150) {
-            //     logger.warn("Low reserves in the pool. Skipping this trade.");
-            //     continue;
-            // }
+            if (solReserves < 150) {
+                logger.warn("Low reserves in the pool. Skipping this trade.");
+                continue;
+            }
         
-            const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
-            const solAddress: string = wsol; // WSOL (Quote)
-            const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";
+            // const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
+            // const solAddress: string = wsol; // WSOL (Quote)
+            // const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";
             const sol: number = 0.01; // WSOL to swap
             let timeout: number = 60;
             // if (solReserves === 150) {
