@@ -19,6 +19,7 @@ import { getSolBalance, getTokenBalance } from "./utils/walletInfo";
 import { decimal } from "@solana/buffer-layout-utils";
 import { grpc_url, grpc_xtoken, wsol } from "../../helpers/config";
 import { time } from "console";
+import logger from "../../../logger";
 import fs from "fs";
 import path from "path";
 
@@ -50,38 +51,41 @@ const client = new Client(
     async function handleStream(client: Client, args: SubscribeRequest, timeoutSeconds: number) {
     // Subscribe for events
     const stream = await client.subscribe();
-    console.log(`📡 Subscribed to price stream for ${timeoutSeconds} seconds`);
+    logger.info(`📡 Subscribed to price stream for ${timeoutSeconds} seconds`);
   
-    // Create `error` / `end` handler
-    const streamClosed = new Promise<void>((resolve, reject) => {
-      stream.on("error", (error) => {
-        console.log("ERROR", error);
-        reject(error);
-        stream.end();
-      });
-      stream.on("end", () => {
-        // resolve();
-      });
-      stream.on("close", () => {
-        // resolve();
-      });
-    });
+  // Create `error` / `end` handler
+  const streamClosed = new Promise<void>((resolve, reject) => {
+    const onEnd = () => {
+      logger.info("📴 Stream ended.");
+      resolve();
+    };
+  
+    const onError = (error: any) => {
+      logger.error("❌ Stream error:", error);
+      stream.destroy(); // more aggressive than .end()
+      reject(error);
+    };
+  
+    stream.once("end", onEnd);
+    stream.once("close", onEnd); // both will call resolve()
+    stream.once("error", onError);
+  });
 
     // Set timeout
-    const timeout = setTimeout(() => {
-        console.log(`⏱️ Timeout reached: ${timeoutSeconds}s. Closing stream...`);
-        stream.cancel();
-      }, timeoutSeconds * 1000);
+    const timeoutId = setTimeout(() => {
+      logger.info(`⏱️ Timeout reached: ${timeoutSeconds}s. Closing stream...`);
+      stream.destroy(); // forcibly closes it
+    }, timeoutSeconds * 1000);
     
     // Handle updates
     stream.on("data", async (data) => {
       try{
-        const result = await tOutPut(data);
+        const result = tOutPut(data);
         const trade = result.signature.toString();
         const baseVault = result.poolstate.baseVault.toString();
         const quoteVault = result.poolstate.quoteVault.toString();
         const mint = result.poolstate.baseMint.toString();
-        // console.log(result)
+        // logger.info(result)
         const tokenInfo = await getTokenInfo(mint)
         const quoteBal = await getSolBalance(quoteVault);
         const baseBal = await getTokenBalance(baseVault)/ 10 ** tokenInfo.decimal;
@@ -115,30 +119,29 @@ PoolInfo : ${quoteBal} SOL
             fs.appendFileSync(logFilePath, logContent, "utf8");
 
             // Still print a minimal version to console
-            console.log(`📦 Logged data for token ${mint} to ${mint}.log`);
+            // logger.info(`📦 Logged data for token ${mint} to ${mint}.log`);
      }
     } catch (error) {
-
+        if (error) {
+          // do nothing, just ignore
+        }
       }
 });
   
-    // Send subscribe request
-    await new Promise<void>((resolve, reject) => {
-      stream.write(args, (err: any) => {
-        if (err === null || err === undefined) {
-          resolve();
-        } else {
-          reject(err);
-        }
-      });
-    }).catch((reason) => {
-      console.error(reason);
-      throw reason;
+  // Send subscribe request
+  await new Promise<void>((resolve, reject) => {
+    stream.write(args, (err: any) => {
+      if (!err) resolve();
+      else reject(err);
     });
-  
-    await streamClosed;
-    clearTimeout(timeout); // 🧼 Clear timeout if stream ends early
-    console.log("✅ Stream closed cleanly.");
+  }).catch((reason) => {
+    logger.error(reason);
+    throw reason;
+  });
+
+  await streamClosed;
+  clearTimeout(timeoutId); // Ensure timeout is cleared after completion
+  logger.info("✅ Stream handler finished cleanly.");
   }
 
   function createRaydiumSubscribeRequest(
@@ -186,14 +189,21 @@ PoolInfo : ${quoteBal} SOL
     quoteMint: string,
     timeoutSeconds: number
   ) {
-    const req = createRaydiumSubscribeRequest(baseMint, quoteMint);
-    handleStream(client, req, timeoutSeconds)
-      .then(() => {
-        console.log("Stream closed successfully.");
-      })
-      .catch((error) => {
-        console.error("Error in stream:", error);
-      });
+      try {
+        const req = createRaydiumSubscribeRequest(baseMint, quoteMint);
+        await handleStream(client, req, timeoutSeconds);
+      } catch (error) {
+        logger.error("Stream error, restarting in 1 second...", error);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
   }
 
-  // subscribeToPriceMcap("7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr", wsol, 180);
+  // (async () => {
+  //   try {
+  //     await subscribeToPriceMcap("7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr", wsol, 30);
+  //     process.exit(0); // Exit cleanly after completion
+  //   } catch (error) {
+  //     logger.error("Fatal error in main execution:", error);
+  //     process.exit(1); // Exit with error code
+  //   }
+  // })();

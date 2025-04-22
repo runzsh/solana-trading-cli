@@ -101,7 +101,7 @@ async function swapOnlyAmm(input: any) {
     },
     poolKeys.version
   );
-  if (input.usage == "volume") return innerTransaction;
+  // if (input.usage == "volume") return innerTransaction;
   let latestBlockhash = await connection.getLatestBlockhash();
   const messageV0 = new TransactionMessage({
     payerKey: wallet.publicKey,
@@ -173,7 +173,7 @@ async function swapOnlyAmm(input: any) {
   }
 
   logger.info("Transaction failed after maximum retry attempts");
-  return { og_signature, txid: null };
+  return { txid: null };
 }
 async function swapOnlyAmmUsingBloXRoute(input: any) {
   let raydium: any = null;
@@ -214,7 +214,7 @@ async function swapOnlyAmmUsingBloXRoute(input: any) {
     },
     poolKeys.version
   );
-  if (input.usage == "volume") return innerTransaction;
+  // if (input.usage == "volume") return innerTransaction;
   const latestBlockhash = await connection.getLatestBlockhash();
   let tx = new Transaction();
   tx.add(
@@ -235,89 +235,92 @@ async function swapOnlyAmmUsingBloXRoute(input: any) {
   );
   await bloXroute_executeAndConfirm(tx, [wallet]);
 }
-/**
- * Swaps tokens for a specified volume.
- * @param {string} tokenAddr - The address of the token to swap.
- * @param {number} sol_per_order - The price of SOL per order.
- * @returns {Promise<{ confirmed: boolean, txid: string }>} The confirmation status and transaction ID.
- */
-export async function swapForVolume(tokenAddr: string, sol_per_order: number) {
-  const buy_instruction: any = await swap(
-    "buy",
-    tokenAddr,
-    sol_per_order,
-    -1,
-    wallet,
-    "volume"
-  );
-  const sell_instruction: any = await swap(
-    "sell",
-    tokenAddr,
-    -1,
-    100,
-    wallet,
-    "volume"
-  );
-  const latestBlockhash = await connection.getLatestBlockhash();
-  const messageV0 = new TransactionMessage({
-    payerKey: wallet.publicKey,
-    recentBlockhash: latestBlockhash.blockhash,
-    instructions: [
-      ...[
-        ComputeBudgetProgram.setComputeUnitLimit({
-          units: 70000,
-        }),
-      ],
-      ...sell_instruction.instructions,
-      ...buy_instruction.instructions,
-    ],
-  });
+// /**
+//  * Swaps tokens for a specified volume.
+//  * @param {string} tokenAddr - The address of the token to swap.
+//  * @param {number} sol_per_order - The price of SOL per order.
+//  * @returns {Promise<{ confirmed: boolean, txid: string }>} The confirmation status and transaction ID.
+//  */
+// export async function swapForVolume(tokenAddr: string, sol_per_order: number) {
+//   const buy_instruction: any = await swap(
+//     "buy",
+//     tokenAddr,
+//     sol_per_order,
+//     -1,
+//     wallet,
+//     "volume"
+//   );
+//   const sell_instruction: any = await swap(
+//     "sell",
+//     tokenAddr,
+//     -1,
+//     100,
+//     wallet,
+//     "volume"
+//   );
+//   const latestBlockhash = await connection.getLatestBlockhash();
+//   const messageV0 = new TransactionMessage({
+//     payerKey: wallet.publicKey,
+//     recentBlockhash: latestBlockhash.blockhash,
+//     instructions: [
+//       ...[
+//         ComputeBudgetProgram.setComputeUnitLimit({
+//           units: 70000,
+//         }),
+//       ],
+//       ...sell_instruction.instructions,
+//       ...buy_instruction.instructions,
+//     ],
+//   });
 
-  const transaction = new VersionedTransaction(messageV0.compileToV0Message());
-  transaction.sign([
-    wallet,
-    ...buy_instruction.signers,
-    ...sell_instruction.signers,
-  ]);
-  let signature = null,
-    confirmed = null;
-  try {
-    const res: any = simple_executeAndConfirm(
-      transaction,
-      wallet,
-      latestBlockhash
-    );
-    signature = res.signature;
-    confirmed = res.confirmed;
-  } catch (e: any) {
-    logger.info(e);
-    return { confirmed: confirmed, txid: e.signature };
-  }
-  return { confirmed: confirmed, txid: signature };
-}
+//   const transaction = new VersionedTransaction(messageV0.compileToV0Message());
+//   transaction.sign([
+//     wallet,
+//     ...buy_instruction.signers,
+//     ...sell_instruction.signers,
+//   ]);
+//   let signature = null,
+//     confirmed = null;
+//   try {
+//     const res: any = simple_executeAndConfirm(
+//       transaction,
+//       wallet,
+//       latestBlockhash
+//     );
+//     signature = res.signature;
+//     confirmed = res.confirmed;
+//   } catch (e: any) {
+//     logger.info(e);
+//     return { confirmed: confirmed, txid: e.signature };
+//   }
+//   return { confirmed: confirmed, txid: signature };
+// }
 
 /**
  * Helper function for swapping tokens using the AMM protocol.
  * @param {Object} input - The input object containing the necessary parameters for the swap.
- * @returns {Promise<void>} - A promise that resolves when the swap is completed.
+ * @returns {Promise<string | null>} - A promise that resolves to the transaction ID if successful, otherwise null.
  */
-async function swapOnlyAmmHelper(input: any) {
+async function swapOnlyAmmHelper(input: any): Promise<string | null> {
   const res: any = await swapOnlyAmm(input);
-  logger.info("txids:", res.txid);
   const response = await checkTx(res.txid);
   if (response) {
     if (input.side === "buy") {
       logger.info(
-        `https://dexscreener.com/solana/${input.targetPool}?maker=${wallet.publicKey}`
+        `DEXSCREENER: https://dexscreener.com/solana/${input.targetPool}?maker=${wallet.publicKey}`
       );
     } else {
       logger.info(
-        `https://dexscreener.com/solana/${input.targetPool}?maker=${wallet.publicKey}`
+        `DEXSCREENER: https://dexscreener.com/solana/${input.targetPool}?maker=${wallet.publicKey}`
       );
     }
-    logger.info(`https://solscan.io/tx/${res.txid}?cluster=mainnet`);
+    logger.info(
+      `JitoFee: https://solscan.io/tx/${res.txid}?cluster=mainnet`
+    );
+    return res.txid;
   } else {
     logger.info("Transaction failed");
+    return null;
   }
 }
 /**
@@ -328,7 +331,7 @@ async function swapOnlyAmmHelper(input: any) {
  * @param {number} buy_AmountOfSol - The amount of SOL to buy (only applicable for "buy" side).
  * @param {number} sell_PercentageOfToken - The percentage of the token to sell (only applicable for "sell" side).
  * @param {object} payer_wallet - The payer's wallet object.
- * @returns {Promise<void>} - A promise that resolves when the swap operation is completed.
+ * @returns {Promise<string | null>} - A promise that resolves to the transaction ID if successful, otherwise null.
  */
 export async function swap(
   side: string,
@@ -344,7 +347,7 @@ export async function swap(
     tokenAccount,
     wallet.publicKey
   );
-  const quoteAta = await getAssociatedTokenAddressSync(
+  const quoteAta = getAssociatedTokenAddressSync(
     Token.WSOL.mint,
     wallet.publicKey
   );
@@ -387,10 +390,10 @@ export async function swap(
       side,
       usage,
     };
-    if (usage == "volume") {
-      return await swapOnlyAmm(input);
-    }
-    swapOnlyAmmHelper(input); // using jito
+    // if (usage == "volume") {
+    //   return await swapOnlyAmm(input);
+    // }
+    return await swapOnlyAmmHelper(input); // using jito
     //swapOnlyAmmUsingBloXRoute(input); // using bloXroute
   } else {
     // sell
@@ -442,10 +445,10 @@ export async function swap(
       usage,
       tokenAddress: tokenAddress,
     };
-    if (usage == "volume") {
-      return await swapOnlyAmm(input);
-    }
-    swapOnlyAmmHelper(input); // using Jito
+    // if (usage == "volume") {
+    //   return await swapOnlyAmm(input);
+    // }
+    return await swapOnlyAmmHelper(input); // using Jito
     //swapOnlyAmmUsingBloXRoute(input); // using bloXroute
   }
 }

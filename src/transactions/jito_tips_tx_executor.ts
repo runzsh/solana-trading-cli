@@ -9,6 +9,7 @@ import axios from "axios";
 import bs58 from "bs58";
 import { Currency, CurrencyAmount } from "@raydium-io/raydium-sdk";
 import { connection } from "../helpers/config";
+import logger from "../../logger";
 
 /**
  * The list of validators for the Jito network.
@@ -26,8 +27,8 @@ const jito_Validators = [
 
 const endpoints = [
   // TODO: Choose a jito endpoint which is closest to your location, and leave others commented
-  "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
-  // "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
+  // "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
+  "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://ny.mainnet.block-engine.jito.wtf/api/v1/bundles",
   // "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/bundles",
@@ -50,7 +51,7 @@ export async function getRandomValidator() {
 //  * @returns {object} - An object containing the confirmation status and the transaction signature.
 //  */
 // export async function jito_confirm(signature: any, latestBlockhash: any) {
-//   console.log("Confirming the jito transaction...");
+//   logger.info("Confirming the jito transaction...");
 //   const confirmation = await connection.confirmTransaction(
 //     {
 //       signature,
@@ -69,7 +70,7 @@ export async function getRandomValidator() {
  * @returns {object} - An object containing the confirmation status and the transaction signature.
  */
 export async function jito_confirm(signature: string, latestBlockhash: any) {
-  console.log("Confirming the Jito transaction...");
+  logger.info("Confirming the Jito transaction...");
   
   const timeout = 10000; // 30 seconds timeout
   const pollInterval = 1000; // Poll every 1 second
@@ -80,21 +81,21 @@ export async function jito_confirm(signature: string, latestBlockhash: any) {
 
     if (status && status.value) {
       if (status.value.confirmationStatus === "confirmed" || status.value.confirmationStatus === "finalized") {
-        console.log("Transaction confirmed.");
+        logger.info("Transaction confirmed.");
         return { confirmed: true, signature };
       }
       
       if (status.value.err) {
-        console.error("Transaction failed:", status.value.err);
+        logger.error("Transaction failed:", status.value.err);
         return { confirmed: false, signature };
       }
     }
 
-    console.log("Waiting for confirmation...");
+    logger.info("Waiting for confirmation...");
     await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
 
-  console.error("Transaction confirmation timed out.");
+  logger.error("Transaction confirmation timed out.");
   return { confirmed: false, signature };
 }
 
@@ -112,12 +113,12 @@ export async function jito_executeAndConfirm(
   lastestBlockhash: any,
   jitofee: any
 ) {
-  console.log("Executing transaction (jito)...");
+  logger.info("Executing transaction (jito)...");
   let jito_validator_wallet = await getRandomValidator(); // Choose a random validator
-  console.log("Selected Jito Validator: ", jito_validator_wallet.toBase58());
+  logger.info("Selected Jito Validator: ", jito_validator_wallet.toBase58());
   try {
     const fee = new CurrencyAmount(Currency.SOL, jitofee, false).raw.toNumber();  // Convert the fee to lamports
-    console.log(`Jito Fee: ${fee / 10 ** 9} sol`);
+    logger.info(`Jito Fee: ${fee / 10 ** 9} sol`);
 
     const jitoFee_message = new TransactionMessage({
       payerKey: payer.publicKey,
@@ -137,8 +138,7 @@ export async function jito_executeAndConfirm(
       jitoFee_transaction.serialize()
     );  // Serialize the Jito fee transaction
 
-    console.log("OG Txn:");
-    console.log("http://solscan.io/tx/" + bs58.encode(transaction.signatures[0]));  // Print the transaction explorer link for OG Txn
+    logger.info("SWAP: http://solscan.io/tx/" + bs58.encode(transaction.signatures[0]));  // Print the transaction explorer link for OG Txn
 
     const serializedTransaction = bs58.encode(transaction.serialize()); // Serialize the original transaction
     const final_transaction = [
@@ -155,21 +155,21 @@ export async function jito_executeAndConfirm(
       })
     );  // Send the transaction to the Jito validators
 
-    console.log("Sending tx to Jito validators...");
+    logger.info("Sending tx to Jito validators...");
     const res = await Promise.all(requests.map((p) => p.catch((e) => e)));
     const success_res = res.filter((r) => !(r instanceof Error));
     if (success_res.length > 0) {
-      console.log("Jito validator accepted the tx");
+      logger.info("Jito validator accepted the tx");
       return await jito_confirm(jitoTxSignature, lastestBlockhash);
     } else {
-      console.log("No Jito validators accepted the tx");
+      logger.info("No Jito validators accepted the tx");
       return { confirmed: false, signature: jitoTxSignature };
     }
   } catch (e) {
     if (e instanceof axios.AxiosError) {
-      console.log("Failed to execute the jito transaction");
+      logger.info("Failed to execute the jito transaction");
     } else {
-      console.log("Error during jito transaction execution: ", e);
+      logger.info("Error during jito transaction execution: ", e);
     }
     return { confirmed: false, signature: null };
   }

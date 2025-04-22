@@ -5,6 +5,7 @@ import {
     connection,
     bloXRoute_auth_header,
     bloXRoute_api_env,
+    wsol,
 } from "./src/helpers/config";
 import { sell } from "./src/raydium/sell_helper";
 import { buy } from "./src/raydium/buy_helper";
@@ -18,11 +19,81 @@ import { token } from "@project-serum/anchor/dist/cjs/utils";
 const pathForPrice = `./src/raydium/real_time_token_price_marketcap_streaming/`;
 let pool: any = null;
 
+async function monitorPriceAndSell(tokenAddress: string, pathForPrice: any, wallet: any, entry_price: number, takeProfit: number, stopLoss: number, timeout: number) {
+    const startTime = Date.now();
+
+    while ((Date.now() - startTime) / 1000 < timeout - 5) {
+        const current_trade = getLatestTokenUpdate(tokenAddress, pathForPrice);
+        const current_price = current_trade?.priceInSOL;
+
+        if (current_price !== undefined) {
+            if (current_price >= takeProfit) {
+                logger.info(`Take Profit hit! Current price: ${current_price}, Selling...`);
+                let attempts = 0;
+                while (attempts < 3) {
+                    const sell_res = await sell("sell", tokenAddress, 100, wallet);
+                    if (sell_res !== null) {
+                        logger.info("Sell successful.");
+                        break;
+                    }
+                    attempts++;
+                    logger.warn(`Sell attempt ${attempts} failed. Retrying...`);
+                }
+                if (attempts === 3) {
+                    logger.error("Failed to sell after 3 attempts. Moving to the next pool...");
+                }
+                break;
+            } else if (current_price <= stopLoss) {
+                logger.info(`Stop Loss hit! Current price: ${current_price}, Selling...`);
+                let attempts = 0;
+                while (attempts < 3) {
+                    const sell_res = await sell("sell", tokenAddress, 100, wallet);
+                    if (sell_res !== null) {
+                        logger.info("Sell successful.");
+                        break;
+                    }
+                    attempts++;
+                    logger.warn(`Sell attempt ${attempts} failed. Retrying...`);
+                }
+                if (attempts === 3) {
+                    logger.error("Failed to sell after 3 attempts. Moving to the next pool...");
+                }
+                break;
+            }
+
+            // if price increases update stop loss to 5% below current price
+            if (current_price >= entry_price) {
+                stopLoss = current_price * 0.95;
+            }
+            logger.info(`Current price: ${current_price}, stopLoss: ${stopLoss}`);
+        } else {
+            logger.warn("Unable to fetch current price.");
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s before next check
+    }
+
+    logger.info("Exiting monitoring loop for this pool.");
+    let attempts = 0;
+    while (attempts < 3) {
+        const sell_res = await sell("sell", tokenAddress, 100, wallet);
+        if (sell_res !== null) {
+            logger.info("Final sell successful.");
+            break;
+        }
+        attempts++;
+        logger.warn(`Final sell attempt ${attempts} failed. Retrying...`);
+    }
+    if (attempts === 3) {
+        logger.error("Failed to sell after 3 final attempts. Moving to the next pool...");
+    }
+}
+
 async function main() {
     logger.info("starting BOT I...");
-
     while (true) {
         try {
+            logger.info("Waiting for new pool...");
             const pool = await getNextNewPool(client, req);
             logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
         
@@ -37,75 +108,51 @@ async function main() {
             const solReserves: number = Number(pool?.initialBalance ?? 0);
             
             if (solReserves < 150) {
-                logger.warn("Low liquidity in the pool. Skipping this trade.");
+                logger.warn("Low reserves in the pool. Skipping this trade.");
                 continue;
             }
-
-            const sol: number = 0.01; // AMOUNT of WSOL to SWAP
-            const timeout: number = 120; // Trade exposure time in seconds
-
-            // Monitoring
-            await subscribeToPriceMcap(tokenAddress, solAddress, timeout);
-            logger.info("Monitoring started successfully");
-
-            // Opening a trade using Raydium
+        
+            // const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
+            // const solAddress: string = wsol; // WSOL (Quote)
+            const sol: number = 0.01; // WSOL to swap
+            const timeout: number = 60; // Trade exposure time
+    
+            // Step 1: Buy token
             logger.info("Opening trade...");
-            await buy("buy", tokenAddress, sol, wallet);
-
-            // Check balance
-            const outTokenPubkey = new PublicKey(tokenAddress);
-            const outTokenBalance = await getSPLTokenBalance(connection, outTokenPubkey, wallet.publicKey);
-            if (outTokenBalance === 0) {
-                logger.warn("No balance found for this token. Trade failed. Skipping.");
+            const buy_res = await buy("buy", tokenAddress, sol, wallet);
+            if (buy_res === null) {
+                logger.error("Failed to open trade. Moving to the next pool...");
                 continue;
             }
-            else {
-                logger.info("Trade executed successfully! Token balance: " + outTokenBalance);
-            }
+            logger.info("Trade opened successfully");
 
-            // Entry Trade Info
+            // Step 2: Start monitoring
+            subscribeToPriceMcap(tokenAddress, solAddress, timeout);
+            logger.info("Price streaming started successfully");
+
+            // Step 3: Entry price
+            // await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds for stream
             const buy_trade = getLatestTokenUpdate(tokenAddress, pathForPrice);
             const entry_price = buy_trade?.priceInSOL;
-
+    
             if (entry_price === undefined) {
                 logger.warn("Entry price is undefined. Skipping this trade.");
                 continue;
             }
+    
+            const takeProfit = entry_price * 1.10;  // 10% profit
+            let stopLoss: number = entry_price * 0.95;  // 5% loss
+    
+            // Step 4: Monitor price for take profit or stop loss
+            logger.info(`Monitoring price...`);
+            await monitorPriceAndSell(tokenAddress, pathForPrice, wallet, entry_price, takeProfit, stopLoss, timeout);
+            logger.info("Monitoring completed successfully");
 
-            const startTime = Date.now();
-            const takeProfit = entry_price * 1.10; // 10% profit
-            let stopLoss: number = entry_price * 0.95; // 5% loss
-
-            while ((Date.now() - startTime) / 1000 < timeout) {
-                const current_trade = getLatestTokenUpdate(tokenAddress, pathForPrice);
-                let current_price = current_trade?.priceInSOL;
-
-                if (current_price !== undefined && current_price >= takeProfit) {
-                logger.info(`Take Profit hit! Current price: ${current_price}, Selling...`);
-                await sell("sell", tokenAddress, 100, wallet);
-                break;
-                } else if (current_price !== undefined && current_price <= stopLoss) {
-                logger.info(`Stop Loss hit! Current price: ${current_price}, Selling...`);
-                await sell("sell", tokenAddress, 100, wallet);
-                break;
-                }
-                
-                if (current_price !== undefined) {
-                    stopLoss = current_price * 0.95; // Update stop loss to 5% below current price
-                }
-                logger.info(`Current price: ${current_price}, Monitoring...`);
-                await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before next check
+            } catch (error) {
+                logger.error("Restarting the stream...", error);
+                await new Promise((r) => setTimeout(r, 1000));
             }
-
-            logger.info("Exiting monitoring loop for this pool.");
-                    
-        } catch (error) {
-            logger.error("Error waiting for new pool. Retrying...", error);
-            await new Promise((r) => setTimeout(r, 1000));
         }
-
-        logger.info("Moving to next pool...");
-    }
 }
 
 async function run() {

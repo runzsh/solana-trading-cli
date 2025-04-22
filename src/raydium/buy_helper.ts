@@ -7,10 +7,10 @@ import { swap } from "./Pool/swap";
  * @param {string} address - The address of the token.
  * @param {number} no_of_sol - The number of SOL to be used for the trade.
  * @param {Keypair} payer - The payer of the transaction.
- * @returns {Promise<void>} - A promise that resolves when the trade is completed.
+ * @returns {Promise<string | null>} - A promise that resolves to the transaction ID if successful, otherwise null.
  */
-export async function buy(side:string, address:string, no_of_sol:number, payer:Keypair) {
-  await swap(side, address, no_of_sol, -1, payer, "trade");
+export async function buy(side:string, address:string, no_of_sol:number, payer:Keypair): Promise<string | null> {
+  return await swap(side, address, no_of_sol, -1, payer, "trade");
 }
 
 export async function get_buy_transaction(
