@@ -14,7 +14,7 @@ export function getLatestTokenUpdate(tokenAddress: string, folderPath: string): 
   const filePath = path.join(folderPath, `${tokenAddress}.log`);
 
   if (!fs.existsSync(filePath)) {
-    console.warn(`Log file not found: ${filePath}. Creating a new one.`);
+    // console.warn(`Log file not found: ${filePath}. Creating a new one.`);
     fs.writeFileSync(filePath, '', 'utf-8');
   }
 

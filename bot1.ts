@@ -135,7 +135,7 @@ async function main() {
             logger.info("Price streaming started successfully");
 
             // Step 3: Entry price
-            // await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds for stream
+            await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds for stream
             const buy_trade = getLatestTokenUpdate(tokenAddress, pathForPrice);
             const entry_price = buy_trade?.priceInSOL;
     
