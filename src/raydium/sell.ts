@@ -50,6 +50,7 @@ program.parse();
 export async function sell(side:string, address:string, poolID: string, sell_percentage:number, payer:Keypair) {
   await swap(side, address, poolID, -1, sell_percentage, payer, "trade");
 }
+
 export async function main() {
   let payer_wallet = null;
   if (payer_keypair !== null) {
@@ -59,4 +60,5 @@ export async function main() {
     sell("sell", token_address, pool, percentage, wallet); // default pre-defined wallet
   }
 }
+
 main();

@@ -17,7 +17,7 @@ export async function sell(side:string, address:string, poolID:string, sell_perc
 export async function get_sell_transaction(
   side:string, 
   tokenAddr:string,
-  poolID: string,
+  poolID:string,
   payer_wallet:Keypair) {
   const innerTransaction = await swap(
     side,

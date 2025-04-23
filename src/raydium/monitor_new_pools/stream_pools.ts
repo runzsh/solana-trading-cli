@@ -229,7 +229,7 @@ export async function getNextNewPool(client: Client, args: SubscribeRequest): Pr
           dev_wallet: parseInfo.user_wallet,
           openTime: parseInfo.openTime,
           startTime: new Date(parseInfo.openTime * 1000),
-          initialBalanceSOL: parseInfo.initPcAmount,
+          initialBalanceSOL: parseInfo.initPcAmount / 1e9,
           initialBalanceToken: parseInfo.initCoinAmount,
           tx: txn.transaction.signatures[0],
           shyft: `https://translator.shyft.to/tx/${txn.transaction.signatures[0]}`,
