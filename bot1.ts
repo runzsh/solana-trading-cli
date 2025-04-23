@@ -90,44 +90,45 @@ async function monitorPriceAndSell(tokenAddress: string, poolID: string, pathFor
 
 async function main() {
     logger.info("starting BOT I...");
-    while (true) {
+    let count = 0;
+    while (count < 1) {
         try {
-            const pool = await getNextNewPool(client, req);
-            logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
+            count++;
+            // const pool = await getNextNewPool(client, req);
+            // logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
 
-            let solReserves: number = 0;
-            let tokenAddress: string = "";
-            const poolAddress: string = pool?.pool ?? "";
-            if (poolAddress === "") {
-                logger.warn("No pool address found for this trade. Skipping.");
-                continue;
-            }
+            // let solReserves: number = 0;
+            // let tokenAddress: string = "";
+            // const poolAddress: string = pool?.pool ?? "";
+            // if (poolAddress === "") {
+            //     logger.warn("No pool address found for this trade. Skipping.");
+            //     continue;
+            // }
 
-            if (pool?.solAddress === wsol) {
-                tokenAddress = pool?.tokenAddress ?? ""; // Base
-                solReserves = Number(pool?.initialBalanceSOL ?? 0);
-            } else {
-                tokenAddress = pool?.solAddress ?? ""; // Base
-                solReserves = Number(pool?.initialBalanceToken ?? 0) / 1e9;
-            }
-            const solAddress: string =  wsol; // WSOL (Quote)
+            // if (pool?.solAddress === wsol) {
+            //     tokenAddress = pool?.tokenAddress ?? ""; // Base
+            //     solReserves = Number(pool?.initialBalanceSOL ?? 0);
+            // } else {
+            //     tokenAddress = pool?.solAddress ?? ""; // Base
+            //     solReserves = Number(pool?.initialBalanceToken ?? 0) / 1e9;
+            // }
+            // const solAddress: string =  wsol; // WSOL (Quote)
             
-            if (solReserves < 150) {
-                logger.warn("Low reserves in the pool. Skipping this trade.");
-                continue;
-            }
+            // if (solReserves < 150) {
+            //     logger.warn("Low reserves in the pool. Skipping this trade.");
+            //     continue;
+            // }
         
-            // const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
-            // const solAddress: string = wsol; // WSOL (Quote)
-            // const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";
+            const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
+            const solAddress: string = wsol; // WSOL (Quote)
+            const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";
             const sol: number = 0.02; // WSOL to swap
-            let timeout: number = 120;
+            let timeout: number = 10;
             // if (solReserves === 150) {
             //     timeout = 40; // Trade exposure time
             // }
     
             // Step 1: Buy token
-            logger.info("Opening trade...");
             await handleBuy("Opening trade...", tokenAddress, poolAddress, sol, wallet);
 
             // Step 2: Start monitoring
