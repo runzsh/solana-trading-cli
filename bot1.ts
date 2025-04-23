@@ -96,16 +96,23 @@ async function main() {
         try {
             const pool = await getNextNewPool(client, req);
             logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
-        
+
+            let solReserves: number = 0;
+            let tokenAddress: string = "";
             const poolAddress: string = pool?.pool ?? "";
             if (poolAddress === "") {
                 logger.warn("No pool address found for this trade. Skipping.");
                 continue;
             }
-            
-            const tokenAddress: string = pool?.tokenAddress ?? ""; // Base
-            const solAddress: string = pool?.solAddress ?? ""; // WSOL (Quote)
-            const solReserves: number = Number(pool?.initialBalance ?? 0);
+
+            if (pool?.solAddress === wsol) {
+                tokenAddress = pool?.tokenAddress ?? ""; // Base
+                solReserves = Number(pool?.initialBalanceSOL ?? 0) / 1e9;
+            } else {
+                tokenAddress = pool?.solAddress ?? ""; // Base
+                solReserves = Number(pool?.initialBalanceToken ?? 0) / 1e9;
+            }
+            const solAddress: string =  wsol; // WSOL (Quote)
             
             if (solReserves < 150) {
                 logger.warn("Low reserves in the pool. Skipping this trade.");
@@ -122,6 +129,7 @@ async function main() {
             // }
     
             // Step 1: Buy token
+            await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds before opening trade
             logger.info("Opening trade...");
             const buy_res = await buy("buy", tokenAddress, poolAddress, sol, wallet);
             if (buy_res === null) {
