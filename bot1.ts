@@ -87,7 +87,7 @@ async function main() {
 
             if (pool?.solAddress === wsol) {
                 tokenAddress = pool?.tokenAddress ?? ""; // Base
-                solReserves = Number(pool?.initialBalanceSOL ?? 0) / 1e9;
+                solReserves = Number(pool?.initialBalanceSOL ?? 0);
             } else {
                 tokenAddress = pool?.solAddress ?? ""; // Base
                 solReserves = Number(pool?.initialBalanceToken ?? 0) / 1e9;
@@ -109,14 +109,23 @@ async function main() {
             // }
     
             // Step 1: Buy token
-            await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds before opening trade
             logger.info("Opening trade...");
-            const buy_res = await buy("buy", tokenAddress, poolAddress, sol, wallet);
+            let attempts = 0;
+            let buy_res: string | null = null;
+            while (attempts < 3) {
+                buy_res = await buy("buy", tokenAddress, poolAddress, sol, wallet);
+                if (buy_res !== null) {
+                    logger.info("Trade opened successfully");
+                    break;
+                }
+                attempts++;
+                logger.warn(`Buy attempt ${attempts} failed. Retrying...`);
+                await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+            }
             if (buy_res === null) {
-                logger.error("Failed to open trade. Moving to the next pool...");
+                logger.error("Failed to open trade after 3 attempts. Moving to the next pool...");
                 continue;
             }
-            logger.info("Trade opened successfully");
 
             // Step 2: Start monitoring
             subscribeToPriceMcap(tokenAddress, solAddress, timeout + 5);
