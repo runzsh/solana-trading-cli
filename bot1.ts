@@ -38,6 +38,24 @@ async function handleSell(message: string, tokenAddress: string, poolID: string,
     return;
 }
 
+async function handleBuy(message: string, tokenAddress: string, poolID: string, amountSol: number, wallet: any) {
+    logger.info(message);
+    let attempts = 0;
+    while (attempts < 3) {
+        const buy_res = await buy("buy", tokenAddress, poolID, amountSol, wallet);
+        if (buy_res !== null) {
+            logger.info("Trade opened successfully.");
+            break;
+        }
+        attempts++;
+        logger.warn(`Buy attempt ${attempts} failed. Retrying...`);
+    }
+    if (attempts === 3) {
+        logger.error("Failed to buy after 3 attempts. Moving to the next pool...");
+    }
+    return;
+}
+
 async function monitorPriceAndSell(tokenAddress: string, poolID: string, pathForPrice: any, wallet: any, entry_price: number, takeProfit: number, stopLoss: number, timeout: number) {
     const startTime = Date.now();
 
@@ -110,22 +128,7 @@ async function main() {
     
             // Step 1: Buy token
             logger.info("Opening trade...");
-            let attempts = 0;
-            let buy_res: string | null = null;
-            while (attempts < 3) {
-                buy_res = await buy("buy", tokenAddress, poolAddress, sol, wallet);
-                if (buy_res !== null) {
-                    logger.info("Trade opened successfully");
-                    break;
-                }
-                attempts++;
-                logger.warn(`Buy attempt ${attempts} failed. Retrying...`);
-                await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
-            }
-            if (buy_res === null) {
-                logger.error("Failed to open trade after 3 attempts. Moving to the next pool...");
-                continue;
-            }
+            await handleBuy("Opening trade...", tokenAddress, poolAddress, sol, wallet);
 
             // Step 2: Start monitoring
             subscribeToPriceMcap(tokenAddress, solAddress, timeout + 5);
