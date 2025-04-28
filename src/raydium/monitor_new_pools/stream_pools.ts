@@ -81,12 +81,25 @@ function decodeRaydiumTxn(tx: VersionedTransactionResponse) {
 }
 
 export async function* subscribeToNewPoolStream(client: Client, args: SubscribeRequest): AsyncGenerator<any, void, unknown> {
+  let retryCount = 0;
+  const maxRetries = 10;
+
   while (true) {
     try {
       yield* handleStream(client, args);
+      retryCount = 0; // Reset retry counter if successful
     } catch (error) {
-      logger.error("Stream error, restarting in 1 second...", error);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      retryCount++;
+      logger.error(`Stream error (attempt ${retryCount}), restarting...`, error);
+
+      if (retryCount > maxRetries) {
+        logger.error("Max retries exceeded. Stopping the stream permanently.");
+        throw new Error("Max retries exceeded.");
+      }
+
+      const backoffMs = Math.min(2 ** retryCount * 1000, 30000); // Cap at 30 seconds
+      logger.info(`Waiting ${backoffMs / 1000} seconds before retrying...`);
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
     }
   }
 }
@@ -94,9 +107,12 @@ export async function* subscribeToNewPoolStream(client: Client, args: SubscribeR
 async function* handleStream(client: Client, args: SubscribeRequest): AsyncGenerator<any, void, unknown> {
   const stream = await client.subscribe();
 
+  let streamErrored = false;
+
   const streamClosed = new Promise<void>((resolve, reject) => {
     stream.on("error", (error) => {
-      logger.info(`ERROR: ${error}`);
+      logger.error(`gRPC Stream error: ${error?.message || error}`);
+      streamErrored = true;
       reject(error);
       stream.end();
     });
@@ -105,48 +121,50 @@ async function* handleStream(client: Client, args: SubscribeRequest): AsyncGener
   });
 
   stream.on("data", (data) => {
-    try {
-      if (data?.transaction) {
-        const txn = TXN_FORMATTER.formTransactionFromJson(data.transaction, Date.now());
-        const decodedRaydiumIxs = decodeRaydiumTxn(txn);
+    if (!streamErrored) {
+      try {
+        if (data?.transaction) {
+          const txn = TXN_FORMATTER.formTransactionFromJson(data.transaction, Date.now());
+          const decodedRaydiumIxs = decodeRaydiumTxn(txn);
 
-        if (!decodedRaydiumIxs?.length) return;
+          if (!decodedRaydiumIxs?.length) return;
 
-        const createPoolIx = decodedRaydiumIxs.find(
-          (ix) => ix.name === "raydiumInitialize" || ix.name === "raydiumInitialize2"
-        );
+          const createPoolIx = decodedRaydiumIxs.find(
+            (ix) => ix.name === "raydiumInitialize" || ix.name === "raydiumInitialize2"
+          );
 
-        if (createPoolIx) {
-          const info = JSON.stringify(createPoolIx.args);
-          const parseInfo = JSON.parse(info);
-          const poolData = {
-            solVault: parseInfo.pool_pc_token_account,
-            tokenVault: parseInfo.pool_coin_token_account,
-            solAddress: parseInfo.pc_mint_address,
-            tokenAddress: parseInfo.coin_mint_address,
-            lpMint: parseInfo.lp_mint_address,
-            pool: parseInfo.amm,
-            dev_wallet: parseInfo.user_wallet,
-            openTime: parseInfo.openTime,
-            startTime: new Date(parseInfo.openTime * 1000),
-            initialBalance: parseInfo.initPcAmount / 1e9,
-            intitalBalanceToken: parseInfo.initCoinAmount,
-            tx: txn.transaction.signatures[0],
-          };
+          if (createPoolIx) {
+            const info = JSON.stringify(createPoolIx.args);
+            const parseInfo = JSON.parse(info);
+            const poolData = {
+              solVault: parseInfo.pool_pc_token_account,
+              tokenVault: parseInfo.pool_coin_token_account,
+              solAddress: parseInfo.pc_mint_address,
+              tokenAddress: parseInfo.coin_mint_address,
+              lpMint: parseInfo.lp_mint_address,
+              pool: parseInfo.amm,
+              dev_wallet: parseInfo.user_wallet,
+              openTime: parseInfo.openTime,
+              startTime: new Date(parseInfo.openTime * 1000),
+              initialBalance: parseInfo.initPcAmount / 1e9,
+              intitalBalanceToken: parseInfo.initCoinAmount,
+              tx: txn.transaction.signatures[0],
+            };
 
-          logger.info(`New LP found: ${JSON.stringify(poolData, null, 2)}`);
+            logger.info(`New LP found: ${JSON.stringify(poolData, null, 2)}`);
 
-          poolStreamController?.enqueue(poolData);
+            poolStreamController?.enqueue(poolData);
+          }
         }
+      } catch (err) {
+        logger.warn("Error processing transaction:", err);
       }
-    } catch (err) {
-      logger.info("Error processing transaction");
     }
   });
 
   await new Promise<void>((resolve, reject) => {
     stream.write(args, (err: any) => {
-      if (err === null || err === undefined) {
+      if (err == null) {
         resolve();
       } else {
         reject(err);
