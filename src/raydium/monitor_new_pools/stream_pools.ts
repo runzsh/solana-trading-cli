@@ -13,7 +13,7 @@ import { VersionedTransactionResponse } from "@solana/web3.js";
 import { TransactionFormatter } from "./utils/transaction-formatter";
 import { RaydiumAmmParser } from "./utils/raydium-amm-parser";
 import { grpc_url, grpc_xtoken } from "../../helpers/config";
-import logger from "./utils/logger";
+import logger from "../../../logger";
 
 interface SubscribeRequest {
   accounts: { [key: string]: SubscribeRequestFilterAccounts };
