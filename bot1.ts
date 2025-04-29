@@ -90,11 +90,8 @@ async function monitorPriceAndSell(tokenAddress: string, poolID: string, pathFor
 
 async function main() {
     logger.info("starting BOT I...");
-    let count = 0;
-    while (count < 1) {
+    while (true) {
         try {
-            count++;
-
             // Fetch initial WSOL balance
             const initialBalanceWSOL = await getSPLTokenBalance(connection, new PublicKey(wsol), wallet.publicKey);
             // const initialBalanceSOL = await checkBalanceByAddress(wallet.publicKey.toString(), connection);
