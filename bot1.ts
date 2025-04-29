@@ -9,7 +9,7 @@ import {
 } from "./src/helpers/config";
 import { sell } from "./src/raydium/sell_helper";
 import { buy } from "./src/raydium/buy_helper";
-import { getSPLTokenBalance } from "./src/helpers/check_balance";
+import { getSPLTokenBalance, checkBalanceByAddress } from "./src/helpers/check_balance";
 import { subscribeToPriceMcap } from "./src/raydium/real_time_token_price_marketcap_streaming/monitor";
 import { client, req, getNextNewPool } from "./src/raydium/monitor_new_pools/stream_pools";
 import logger from './logger';
@@ -94,36 +94,42 @@ async function main() {
     while (count < 1) {
         try {
             count++;
-            // const pool = await getNextNewPool(client, req);
-            // logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
 
-            // let solReserves: number = 0;
-            // let tokenAddress: string = "";
-            // const poolAddress: string = pool?.pool ?? "";
-            // if (poolAddress === "") {
-            //     logger.warn("No pool address found for this trade. Skipping.");
-            //     continue;
-            // }
+            // Fetch initial WSOL balance
+            const initialBalanceWSOL = await getSPLTokenBalance(connection, new PublicKey(wsol), wallet.publicKey);
+            // const initialBalanceSOL = await checkBalanceByAddress(wallet.publicKey.toString(), connection);
+            logger.info(`Initial WSOL balance: ${initialBalanceWSOL}`);
 
-            // if (pool?.solAddress === wsol) {
-            //     tokenAddress = pool?.tokenAddress ?? ""; // Base
-            //     solReserves = Number(pool?.initialBalanceSOL ?? 0);
-            // } else {
-            //     tokenAddress = pool?.solAddress ?? ""; // Base
-            //     solReserves = Number(pool?.initialBalanceToken ?? 0) / 1e9;
-            // }
-            // const solAddress: string =  wsol; // WSOL (Quote)
+            const pool = await getNextNewPool(client, req);
+            logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
+
+            let solReserves: number = 0;
+            let tokenAddress: string = "";
+            const poolAddress: string = pool?.pool ?? "";
+            if (poolAddress === "") {
+                logger.warn("No pool address found for this trade. Skipping.");
+                continue;
+            }
+
+            if (pool?.solAddress === wsol) {
+                tokenAddress = pool?.tokenAddress ?? ""; // Base
+                solReserves = Number(pool?.initialBalanceSOL ?? 0);
+            } else {
+                tokenAddress = pool?.solAddress ?? ""; // Base
+                solReserves = Number(pool?.initialBalanceToken ?? 0) / 1e9;
+            }
+            const solAddress: string =  wsol; // WSOL (Quote)
             
-            // if (solReserves < 150) {
-            //     logger.warn("Low reserves in the pool. Skipping this trade.");
-            //     continue;
-            // }
+            if (solReserves < 150) {
+                logger.warn("Low reserves in the pool. Skipping this trade.");
+                continue;
+            }
         
-            const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // Base
-            const solAddress: string = wsol; // WSOL (Quote)
-            const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";
-            const sol: number = 0.02; // WSOL to swap
-            let timeout: number = 10;
+            // const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // POPCAT
+            // const solAddress: string = wsol; // WSOL (Quote)
+            // const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";  // Pool
+            const sol: number = 0.1; // WSOL to swap
+            let timeout: number = 60;
             // if (solReserves === 150) {
             //     timeout = 40; // Trade exposure time
             // }
@@ -164,6 +170,11 @@ async function main() {
                 logger.info(`Monitoring price...`);
                 await monitorPriceAndSell(tokenAddress, poolAddress, pathForPrice, wallet, entry_price, takeProfit, stopLoss, timeout);
                 logger.info("Monitoring completed successfully");
+
+                // Step 5: Check final balance
+                const finalBalance = await getSPLTokenBalance(connection, new PublicKey(wsol), wallet.publicKey);
+                logger.info(`Final WSOL balance: ${finalBalance}`);
+                logger.info(`-------------------------------------------------------`);
             }
             } catch (error) {
                 logger.error("Restarting the stream...", error);
