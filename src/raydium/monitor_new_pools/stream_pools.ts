@@ -194,52 +194,38 @@ async function* handleStream(client: Client, args: SubscribeRequest): AsyncGener
 
 let poolStreamController: ReadableStreamDefaultController<any> | null = null;
 
-export async function getNextNewPool(
-  client: Client,
-  args: SubscribeRequest,
-  maxRetries = 5,
-  retryDelay = 2000
-): Promise<any> {
-  let attempt = 0;
-
-  async function attemptSubscription(): Promise<any> {
-    return new Promise(async (resolve, reject) => {
+export async function getNextNewPool(client: Client, args: SubscribeRequest): Promise<any> {
+  return new Promise((resolve) => {
+    const startStream = async () => {
       const stream = await client.subscribe();
-      logger.info(`Waiting for new pool... (Attempt ${attempt + 1})`);
+      logger.info("Waiting for new pool...");
 
       const closeStream = () => {
         try {
           stream.end?.();
           stream.destroy?.();
-        } catch (e) {}
+        } catch (_) {}
       };
 
-      const onError = async (err: any) => {
-        logger.error(`Stream error: ${err?.message || err}`);
-
+      const restartStream = () => {
         closeStream();
-
-        // Retry if possible
-        if (attempt < maxRetries) {
-          attempt++;
-          logger.info(`Retrying in ${retryDelay}ms...`);
-          setTimeout(() => {
-            attemptSubscription().then(resolve).catch(reject);
-          }, retryDelay);
-        } else {
-          logger.error("Max retries reached. Failing.");
-          reject(err);
-        }
+        logger.warn("Stream interrupted. Restarting...");
+        setTimeout(startStream, 1000); // restart after 1s
       };
 
-      stream.on("error", onError);
-      stream.on("end", () => {
-        logger.warn("Stream ended. Retrying...");
-        onError(new Error("Stream ended without receiving pool"));
+      stream.on("error", (err: any) => {
+        logger.warn(`Stream error ignored: ${err?.message || err}`);
+        restartStream();
       });
+
+      stream.on("end", () => {
+        logger.warn("Stream ended. Restarting...");
+        restartStream();
+      });
+
       stream.on("close", () => {
-        logger.warn("Stream closed. Retrying...");
-        onError(new Error("Stream closed without receiving pool"));
+        logger.warn("Stream closed. Restarting...");
+        restartStream();
       });
 
       stream.on("data", (data) => {
@@ -277,21 +263,21 @@ export async function getNextNewPool(
           closeStream();
           resolve(poolData);
         } catch (err) {
-          logger.error("Error handling transaction", err);
+          logger.warn("Error handling transaction, ignored:", err);
         }
       });
 
-      // Initiate subscription
+      // Send subscribe request
       stream.write(args, (err: any) => {
         if (err) {
-          logger.error("Stream write error", err);
-          onError(err);
+          logger.warn("Stream write error ignored:", err);
+          restartStream();
         }
       });
-    });
-  }
+    };
 
-  return attemptSubscription();
+    startStream(); // initial call
+  });
 }
 
 async function main() {
