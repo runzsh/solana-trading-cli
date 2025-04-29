@@ -194,82 +194,104 @@ async function* handleStream(client: Client, args: SubscribeRequest): AsyncGener
 
 let poolStreamController: ReadableStreamDefaultController<any> | null = null;
 
-export async function getNextNewPool(client: Client, args: SubscribeRequest): Promise<any> {
-  return new Promise(async (resolve, reject) => {
-    const stream = await client.subscribe();
-    logger.info("Waiting for new pool...");
+export async function getNextNewPool(
+  client: Client,
+  args: SubscribeRequest,
+  maxRetries = 5,
+  retryDelay = 2000
+): Promise<any> {
+  let attempt = 0;
 
-    // Clean-up helpers
-    const closeStream = () => {
-      try {
-        stream.end?.();
-        stream.destroy?.();
-      } catch (e) {}
-    };
+  async function attemptSubscription(): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      const stream = await client.subscribe();
+      logger.info(`Waiting for new pool... (Attempt ${attempt + 1})`);
 
-    const onError = (err: any) => {
-      logger.info(`Stream error: ${err}`);
-      closeStream();
-      reject(err);
-    };
+      const closeStream = () => {
+        try {
+          stream.end?.();
+          stream.destroy?.();
+        } catch (e) {}
+      };
 
-    stream.on("error", onError);
-    stream.on("end", () => {
-      closeStream();
-      reject(new Error("Stream ended without receiving pool"));
-    });
-    stream.on("close", () => {
-      closeStream();
-      reject(new Error("Stream closed without receiving pool"));
-    });
-
-    stream.on("data", (data) => {
-      try {
-        if (!data?.transaction) return;
-
-        const txn = TXN_FORMATTER.formTransactionFromJson(data.transaction, Date.now());
-        const decoded = decodeRaydiumTxn(txn);
-
-        const poolIx = decoded.find(
-          (ix) => ix.name === "raydiumInitialize" || ix.name === "raydiumInitialize2"
-        );
-
-        if (!poolIx) return;
-
-        const info = JSON.stringify(poolIx.args);
-        const parseInfo = JSON.parse(info);
-        const poolData = {
-          solVault: parseInfo.pool_pc_token_account,
-          tokenVault: parseInfo.pool_coin_token_account,
-          solAddress: parseInfo.pc_mint_address,
-          tokenAddress: parseInfo.coin_mint_address,
-          lpMint: parseInfo.lp_mint_address,
-          pool: parseInfo.amm,
-          dev_wallet: parseInfo.user_wallet,
-          openTime: parseInfo.openTime,
-          startTime: new Date(parseInfo.openTime * 1000),
-          initialBalanceSOL: parseInfo.initPcAmount / 1e9,
-          initialBalanceToken: parseInfo.initCoinAmount,
-          tx: txn.transaction.signatures[0],
-          shyft: `https://translator.shyft.to/tx/${txn.transaction.signatures[0]}`,
-          solscan: `https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet`,
-        };
+      const onError = async (err: any) => {
+        logger.error(`Stream error: ${err?.message || err}`);
 
         closeStream();
-        resolve(poolData);
-      } catch (err) {
-        logger.info("Error handling transaction", err);
-      }
-    });
 
-    // Send subscribe request
-    stream.write(args, (err: any) => {
-      if (err) {
-        closeStream();
-        reject(err);
-      }
+        // Retry if possible
+        if (attempt < maxRetries) {
+          attempt++;
+          logger.info(`Retrying in ${retryDelay}ms...`);
+          setTimeout(() => {
+            attemptSubscription().then(resolve).catch(reject);
+          }, retryDelay);
+        } else {
+          logger.error("Max retries reached. Failing.");
+          reject(err);
+        }
+      };
+
+      stream.on("error", onError);
+      stream.on("end", () => {
+        logger.warn("Stream ended. Retrying...");
+        onError(new Error("Stream ended without receiving pool"));
+      });
+      stream.on("close", () => {
+        logger.warn("Stream closed. Retrying...");
+        onError(new Error("Stream closed without receiving pool"));
+      });
+
+      stream.on("data", (data) => {
+        try {
+          if (!data?.transaction) return;
+
+          const txn = TXN_FORMATTER.formTransactionFromJson(data.transaction, Date.now());
+          const decoded = decodeRaydiumTxn(txn);
+
+          const poolIx = decoded.find(
+            (ix) => ix.name === "raydiumInitialize" || ix.name === "raydiumInitialize2"
+          );
+
+          if (!poolIx) return;
+
+          const info = JSON.stringify(poolIx.args);
+          const parseInfo = JSON.parse(info);
+          const poolData = {
+            solVault: parseInfo.pool_pc_token_account,
+            tokenVault: parseInfo.pool_coin_token_account,
+            solAddress: parseInfo.pc_mint_address,
+            tokenAddress: parseInfo.coin_mint_address,
+            lpMint: parseInfo.lp_mint_address,
+            pool: parseInfo.amm,
+            dev_wallet: parseInfo.user_wallet,
+            openTime: parseInfo.openTime,
+            startTime: new Date(parseInfo.openTime * 1000),
+            initialBalanceSOL: parseInfo.initPcAmount / 1e9,
+            initialBalanceToken: parseInfo.initCoinAmount,
+            tx: txn.transaction.signatures[0],
+            shyft: `https://translator.shyft.to/tx/${txn.transaction.signatures[0]}`,
+            solscan: `https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet`,
+          };
+
+          closeStream();
+          resolve(poolData);
+        } catch (err) {
+          logger.error("Error handling transaction", err);
+        }
+      });
+
+      // Initiate subscription
+      stream.write(args, (err: any) => {
+        if (err) {
+          logger.error("Stream write error", err);
+          onError(err);
+        }
+      });
     });
-  });
+  }
+
+  return attemptSubscription();
 }
 
 async function main() {
