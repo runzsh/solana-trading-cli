@@ -70,9 +70,10 @@ import Client, {
           }
         });
         if (createPoolIx) {
-          const info = JSON.stringify(createPoolIx.args);
+        //   const info = JSON.stringify(createPoolIx.args);
           console.log("New LP found: \n")
           console.log(
+            `Timestamp (UTC): ${new Date().toISOString()} \n`,
             `New LP Found \n SHYFT: https://translator.shyft.to/tx/${txn.transaction.signatures[0]} \n`,
             `SOLSCAN: https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet \n`,
             JSON.stringify(createPoolIx.args, null, 2) + "\n",
