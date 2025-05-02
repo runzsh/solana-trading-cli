@@ -75,7 +75,7 @@ raydf = raydf.sort_values('timestamp').reset_index(drop=True)
 # In[56]:
 
 
-logs_folder = Path('./logs')
+logs_folder = Path('~/logs')
 log_files = list(logs_folder.glob('stream_pumpfun_pools_*.log'))
 if not log_files:
     raise FileNotFoundError("No .log files found in ./logs")
