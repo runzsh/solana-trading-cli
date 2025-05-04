@@ -61,6 +61,11 @@ export async function checkLatestPool(): Promise<{
 
 async function handleSell(message: string, tokenAddress: string, poolID: string, wallet: any) {
     logger.info(message);
+    const balanceToSell = await getSPLTokenBalance(connection, new PublicKey(tokenAddress), wallet.publicKey);
+    if (balanceToSell === 0) {
+        logger.warn("No balance to sell. Skipping...");
+        return;
+    }
     let attempts = 0;
     while (attempts < 3) {
         const sell_res = await sell("sell", tokenAddress, poolID, 100, wallet);
@@ -201,7 +206,7 @@ async function main() {
                 continue;
             } else {
                 logger.info(`Entry price: ${entry_price}`);
-                const takeProfit = entry_price * 1.10;  // 10% profit
+                const takeProfit = entry_price * 1.15;  // 10% profit
                 let stopLoss: number = entry_price * 0.95;  // 5% loss
         
                 // Step 4: Monitor price for take profit or stop loss
