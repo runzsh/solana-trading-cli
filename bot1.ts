@@ -67,7 +67,7 @@ async function handleSell(message: string, tokenAddress: string, poolID: string,
         return;
     }
     let attempts = 0;
-    while (attempts < 3) {
+    while (attempts < 10) {
         const sell_res = await sell("sell", tokenAddress, poolID, 100, wallet);
         if (sell_res !== null) {
             logger.info("Sell successful.");
@@ -77,8 +77,8 @@ async function handleSell(message: string, tokenAddress: string, poolID: string,
         logger.warn(`Sell attempt ${attempts} failed. Retrying...`);
         await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
     }
-    if (attempts === 3) {
-        logger.error("Failed to sell after 3 attempts. Moving to the next pool...");
+    if (attempts === 10) {
+        logger.error("Failed to sell after 10 attempts. Moving to the next pool...");
     }
     return;
 }
