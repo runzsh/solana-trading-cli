@@ -215,6 +215,7 @@ async function main() {
                 logger.info("Monitoring completed successfully");
 
                 // Step 5: Check final balance
+                await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before fetching final balance
                 const finalBalance = await getSPLTokenBalance(connection, new PublicKey(wsol), wallet.publicKey);
                 logger.info(`Final WSOL balance: ${finalBalance}`);
                 logger.info(`-------------------------------------------------------`);
