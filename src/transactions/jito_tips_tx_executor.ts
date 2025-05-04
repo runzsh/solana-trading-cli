@@ -72,7 +72,7 @@ export async function getRandomValidator() {
 export async function jito_confirm(signature: string, latestBlockhash: any) {
   logger.info("Confirming the Jito transaction...");
   
-  const timeout = 10000; // 30 seconds timeout
+  const timeout = 5000; // 5 seconds timeout
   const pollInterval = 1000; // Poll every 1 second
   const startTime = Date.now();
 

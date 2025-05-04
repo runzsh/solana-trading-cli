@@ -143,7 +143,7 @@ async function main() {
             logger.info(`Initial WSOL balance: ${initialBalanceWSOL}`);
 
             // Exit if balance is less than 0.5
-            if (initialBalanceWSOL < 0.5) {
+            if (initialBalanceWSOL < 0.4) {
                 logger.warn("Insufficient WSOL balance. Exiting...");
                 process.exit(1);
             }
