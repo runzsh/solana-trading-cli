@@ -111,16 +111,36 @@ import Client, {
             return decodedRaydiumIx;
           }
         });
+
+        const fs = require('fs');
+        const path = require('path');
+
         if (createPoolIx) {
-        //   const info = JSON.stringify(createPoolIx.args);
-          console.log("New LP found: \n")
-          console.log(
-            `Timestamp (UTC): ${new Date().toISOString()} \n`,
-            `New LP Found \n SHYFT: https://translator.shyft.to/tx/${txn.transaction.signatures[0]} \n`,
-            `SOLSCAN: https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet \n`,
-            JSON.stringify(createPoolIx.args, null, 2) + "\n",
-          );
+          const timestamp = new Date().toISOString();
+          const signature = txn.transaction.signatures[0];
+          const logContent = 
+            `Timestamp (UTC): ${timestamp}\n` +
+            `New LP Found\n` +
+            `SHYFT: https://translator.shyft.to/tx/${signature}\n` +
+            `SOLSCAN: https://solscan.io/tx/${signature}?cluster=mainnet\n` +
+            `Args:\n${JSON.stringify(createPoolIx.args, null, 2)}\n`;
+
+          console.log("New LP found: \n", logContent);
+
+          // Overwrite the latest pool log file
+          const logPath = path.join(__dirname, 'latest_pool.log');
+          fs.writeFileSync(logPath, logContent, 'utf8');
         }
+        // if (createPoolIx) {
+        // //   const info = JSON.stringify(createPoolIx.args);
+        //   console.log("New LP found: \n")
+        //   console.log(
+        //     `Timestamp (UTC): ${new Date().toISOString()} \n`,
+        //     `New LP Found \n SHYFT: https://translator.shyft.to/tx/${txn.transaction.signatures[0]} \n`,
+        //     `SOLSCAN: https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet \n`,
+        //     JSON.stringify(createPoolIx.args, null, 2) + "\n",
+        //   );
+        // }
       }
   }catch(error){
     if(error){
