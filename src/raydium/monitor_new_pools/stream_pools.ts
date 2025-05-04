@@ -80,60 +80,55 @@ function decodeRaydiumTxn(tx: VersionedTransactionResponse) {
   return decodedIxs;
 }
 
-export async function* subscribeToNewPoolStream(client: Client, args: SubscribeRequest): AsyncGenerator<any, void, unknown> {
-  let retryCount = 0;
-  const maxRetries = 10;
+export async function waitForNewPool(client: Client, args: SubscribeRequest): Promise<any> {
+  return new Promise<any>(async (resolve, reject) => {
+    // Subscribe for events
+    const stream = await client.subscribe();
 
-  while (true) {
-    try {
-      yield* handleStream(client, args);
-      retryCount = 0; // Reset retry counter if successful
-    } catch (error) {
-      retryCount++;
-      logger.error(`Stream error (attempt ${retryCount}), restarting...`, error);
-
-      if (retryCount > maxRetries) {
-        logger.error("Max retries exceeded. Stopping the stream permanently.");
-        throw new Error("Max retries exceeded.");
-      }
-
-      const backoffMs = Math.min(2 ** retryCount * 1000, 30000); // Cap at 30 seconds
-      logger.info(`Waiting ${backoffMs / 1000} seconds before retrying...`);
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
-    }
-  }
-}
-
-async function* handleStream(client: Client, args: SubscribeRequest): AsyncGenerator<any, void, unknown> {
-  const stream = await client.subscribe();
-
-  let streamErrored = false;
-
-  const streamClosed = new Promise<void>((resolve, reject) => {
-    stream.on("error", (error) => {
-      logger.error(`gRPC Stream error: ${error?.message || error}`);
-      streamErrored = true;
-      reject(error);
-      stream.end();
+    // Create `error` / `end` handler
+    const streamClosed = new Promise<void>((resolveClose, rejectClose) => {
+      stream.on("error", (error) => {
+        console.log("ERROR", error);
+        rejectClose(error);
+        stream.end();
+      });
+      stream.on("end", () => {
+        resolveClose();
+      });
+      stream.on("close", () => {
+        resolveClose();
+      });
     });
-    stream.on("end", resolve);
-    stream.on("close", resolve);
-  });
 
-  stream.on("data", (data) => {
-    if (!streamErrored) {
+    // Handle updates
+    stream.on("data", (data) => {
       try {
         if (data?.transaction) {
-          const txn = TXN_FORMATTER.formTransactionFromJson(data.transaction, Date.now());
+          const txn = TXN_FORMATTER.formTransactionFromJson(
+            data.transaction,
+            Date.now(),
+          );
           const decodedRaydiumIxs = decodeRaydiumTxn(txn);
 
           if (!decodedRaydiumIxs?.length) return;
-
-          const createPoolIx = decodedRaydiumIxs.find(
-            (ix) => ix.name === "raydiumInitialize" || ix.name === "raydiumInitialize2"
-          );
+          const createPoolIx = decodedRaydiumIxs.find((decodedRaydiumIx) => {
+            if (
+              decodedRaydiumIx.name === "raydiumInitialize" ||
+              decodedRaydiumIx.name === "raydiumInitialize2"
+            ) {
+              return decodedRaydiumIx;
+            }
+          });
 
           if (createPoolIx) {
+            console.log("New LP found: \n")
+            console.log(
+              `Timestamp (UTC): ${new Date().toISOString()} \n`,
+              `New LP Found \n SHYFT: https://translator.shyft.to/tx/${txn.transaction.signatures[0]} \n`,
+              `SOLSCAN: https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet \n`,
+              JSON.stringify(createPoolIx.args, null, 2) + "\n",
+            );
+
             const info = JSON.stringify(createPoolIx.args);
             const parseInfo = JSON.parse(info);
             const poolData = {
@@ -146,53 +141,40 @@ async function* handleStream(client: Client, args: SubscribeRequest): AsyncGener
               dev_wallet: parseInfo.user_wallet,
               openTime: parseInfo.openTime,
               startTime: new Date(parseInfo.openTime * 1000),
-              initialBalance: parseInfo.initPcAmount / 1e9,
-              intitalBalanceToken: parseInfo.initCoinAmount,
+              initialBalanceSOL: parseInfo.initPcAmount / 1e9,
+              initialBalanceToken: parseInfo.initCoinAmount,
               tx: txn.transaction.signatures[0],
+              shyft: `https://translator.shyft.to/tx/${txn.transaction.signatures[0]}`,
+              solscan: `https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet`,
             };
-
-            logger.info(`New LP found: ${JSON.stringify(poolData, null, 2)}`);
-
-            poolStreamController?.enqueue(poolData);
+            resolve(poolData); // <-- Return the found pool
+            stream.end(); // <-- Stop the stream
           }
         }
-      } catch (err) {
-        logger.warn("Error processing transaction:", err);
-      }
-    }
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    stream.write(args, (err: any) => {
-      if (err == null) {
-        resolve();
-      } else {
-        reject(err);
+      } catch (error) {
+        if (error) {
+          console.log("Error")
+        }
       }
     });
+
+    // Send subscribe request
+    await new Promise<void>((resolveWrite, rejectWrite) => {
+      stream.write(args, (err: any) => {
+        if (err === null || err === undefined) {
+          resolveWrite();
+        } else {
+          rejectWrite(err);
+        }
+      });
+    }).catch((reason) => {
+      console.error(reason);
+      reject(reason);
+    });
+
+    await streamClosed;
   });
-
-  const poolStream = new ReadableStream({
-    start(controller) {
-      poolStreamController = controller;
-    },
-    cancel() {
-      poolStreamController = null;
-    }
-  });
-
-  const reader = poolStream.getReader();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    yield value;
-  }
-
-  await streamClosed;
 }
-
-let poolStreamController: ReadableStreamDefaultController<any> | null = null;
 
 export async function getNextNewPool(client: Client, args: SubscribeRequest): Promise<any> {
   return new Promise((resolve) => {
@@ -281,28 +263,8 @@ export async function getNextNewPool(client: Client, args: SubscribeRequest): Pr
 }
 
 async function main() {
-  for await (const pool of subscribeToNewPoolStream(client, req)) {
-    try {
-      // 💥 Process your pool here
-      logger.info("🎯 New Pool:");
-      logger.info(`TX: https://translator.shyft.to/tx/${pool.tx}`);
-      logger.info(`SOLSCAN: https://solscan.io/tx/${pool.tx}?cluster=mainnet`);
-      logger.info(`DEXSCREENER: https://dexscreener.com/solana/${pool.pool}`);
-      logger.info(`Pool Address: ${pool.pool}`);
-      logger.info(`Token Address: ${pool.tokenAddress}`);
-      logger.info(`SOL Address: ${pool.solAddress}`);
-      logger.info(`LP Mint: ${pool.lpMint}`);
-      logger.info(`Initial Balance: ${pool.initialBalance} SOL`);
-      logger.info(`Start Time: ${pool.startTime}`);
-      logger.info(`Owner/Dev Wallet: ${pool.dev_wallet}`);
-      logger.info("------------------------------");
-
-      // 💤 Optionally sleep before processing the next pool
-      await new Promise((r) => setTimeout(r, 1000));
-    } catch (err) {
-      logger.error("Error processing new pool. Continuing...", err);
-    }
-  }
+  const newPool = await waitForNewPool(client, req);
+  console.log("New Pool Found:", newPool);
 }
 
 main().catch(logger.error);

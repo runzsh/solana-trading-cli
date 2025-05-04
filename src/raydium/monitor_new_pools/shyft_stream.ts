@@ -30,6 +30,48 @@ import Client, {
   const TXN_FORMATTER = new TransactionFormatter();
   const RAYDIUM_PARSER = new RaydiumAmmParser();
   const RAYDIUM_PUBLIC_KEY = RaydiumAmmParser.PROGRAM_ID;
+  const client = new Client(
+    grpc_url,
+    grpc_xtoken,
+    undefined,
+  );
+  const req: SubscribeRequest = {
+    accounts: {},
+    slots: {},
+    transactions: {
+      raydiumLiquidityPoolV4: {
+        vote: false,
+        failed: false,
+        signature: undefined,
+        accountInclude: [RAYDIUM_PUBLIC_KEY.toBase58()],
+        accountExclude: [],
+        accountRequired: [],
+      },
+    },
+    transactionsStatus: {},
+    entry: {},
+    blocks: {},
+    blocksMeta: {},
+    accountsDataSlice: [],
+    ping: undefined,
+    commitment: CommitmentLevel.CONFIRMED,
+  };
+
+  function decodeRaydiumTxn(tx: VersionedTransactionResponse) {
+    if (tx.meta?.err) return;
+  
+    const allIxs = TXN_FORMATTER.flattenTransactionResponse(tx);
+  
+    const raydiumIxs = allIxs.filter((ix) =>
+      ix.programId.equals(RAYDIUM_PUBLIC_KEY),
+    );
+  
+    const decodedIxs = raydiumIxs.map((ix) =>
+      RAYDIUM_PARSER.parseInstruction(ix),
+    );
+  
+    return decodedIxs;
+  }
   
   async function handleStream(client: Client, args: SubscribeRequest) {
     // Subscribe for events
@@ -115,49 +157,7 @@ import Client, {
     }
   }
   
-  const client = new Client(
-    grpc_url,
-    grpc_xtoken,
-    undefined,
-  );
-  
-  const req: SubscribeRequest = {
-    accounts: {},
-    slots: {},
-    transactions: {
-      raydiumLiquidityPoolV4: {
-        vote: false,
-        failed: false,
-        signature: undefined,
-        accountInclude: [RAYDIUM_PUBLIC_KEY.toBase58()],
-        accountExclude: [],
-        accountRequired: [],
-      },
-    },
-    transactionsStatus: {},
-    entry: {},
-    blocks: {},
-    blocksMeta: {},
-    accountsDataSlice: [],
-    ping: undefined,
-    commitment: CommitmentLevel.CONFIRMED,
-  };
-  
   subscribeCommand(client, req);
   
-  function decodeRaydiumTxn(tx: VersionedTransactionResponse) {
-    if (tx.meta?.err) return;
-  
-    const allIxs = TXN_FORMATTER.flattenTransactionResponse(tx);
-  
-    const raydiumIxs = allIxs.filter((ix) =>
-      ix.programId.equals(RAYDIUM_PUBLIC_KEY),
-    );
-  
-    const decodedIxs = raydiumIxs.map((ix) =>
-      RAYDIUM_PARSER.parseInstruction(ix),
-    );
-  
-    return decodedIxs;
-  }
+
   
