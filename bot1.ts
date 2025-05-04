@@ -125,7 +125,7 @@ async function main() {
             // const tokenAddress: string = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"; // POPCAT
             // const solAddress: string = wsol; // WSOL (Quote)
             // const poolAddress: string = "FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo";  // Pool
-            const sol: number = 0.1; // WSOL to swap
+            const sol: number = 0.01; // WSOL to swap
             let timeout: number = 60;
             // if (solReserves === 150) {
             //     timeout = 40; // Trade exposure time
