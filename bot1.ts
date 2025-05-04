@@ -25,30 +25,38 @@ const LOG_PATH = path.join(__dirname, 'logs', 'latest_raydium_pool.log');
 let lastKnownTimestamp = '';
 
 export async function checkLatestPool(): Promise<{
-  timestamp: string;
-  args: Record<string, any>;
+    timestamp: string;
+    args: Record<string, any>;
 }> {
-  return new Promise((resolve) => {
-    const interval = setInterval(async () => {
-      try {
-        const content = await fs.readFile(LOG_PATH, 'utf-8');
-        const timestampMatch = content.match(/Timestamp \(UTC\): ([^\n]+)/);
-        const argsMatch = content.match(/Args:\s*(\{[\s\S]*\})/);
+    return new Promise((resolve) => {
+        const interval = setInterval(async () => {
+            try {
+                const content = await fs.readFile(LOG_PATH, 'utf-8');
+                const timestampMatch = content.match(/Timestamp \(UTC\): ([^\n]+)/);
+                const argsMatch = content.match(/Args:\s*(\{[\s\S]*\})/);
 
-        if (timestampMatch && argsMatch) {
-          const timestamp = timestampMatch[1];
-          if (timestamp !== lastKnownTimestamp) {
-            lastKnownTimestamp = timestamp;
-            const argsJson = JSON.parse(argsMatch[1]);
-            clearInterval(interval);
-            resolve({ timestamp, args: argsJson });
-          }
-        }
-      } catch (err) {
-        console.error('Failed to read log:', err);
-      }
-    }, 3000); // check every 3 seconds
-  });
+                if (timestampMatch && argsMatch) {
+                    const timestamp = timestampMatch[1];
+                    const timestampDate = new Date(timestamp);
+                    const now = new Date();
+
+                    // Check if the timestamp is within the last 1 minute
+                    if (now.getTime() - timestampDate.getTime() <= 60 * 1000) {
+                        if (timestamp !== lastKnownTimestamp) {
+                            lastKnownTimestamp = timestamp;
+                            const argsJson = JSON.parse(argsMatch[1]);
+                            clearInterval(interval);
+                            resolve({ timestamp, args: argsJson });
+                        }
+                    } else {
+                        console.warn("Fetched pool is not fresh enough. Skipping...");
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to read log:', err);
+            }
+        }, 3000); // check every 3 seconds
+    });
 }
 
 
