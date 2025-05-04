@@ -140,8 +140,13 @@ async function main() {
         try {
             // Fetch initial WSOL balance
             const initialBalanceWSOL = await getSPLTokenBalance(connection, new PublicKey(wsol), wallet.publicKey);
-            // const initialBalanceSOL = await checkBalanceByAddress(wallet.publicKey.toString(), connection);
             logger.info(`Initial WSOL balance: ${initialBalanceWSOL}`);
+
+            // Exit if balance is less than 0.5
+            if (initialBalanceWSOL < 0.5) {
+                logger.warn("Insufficient WSOL balance. Exiting...");
+                process.exit(1);
+            }
 
             const pool = (await checkLatestPool()).args;
             logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
