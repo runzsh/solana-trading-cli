@@ -176,95 +176,10 @@ export async function waitForNewPool(client: Client, args: SubscribeRequest): Pr
   });
 }
 
-export async function getNextNewPool(client: Client, args: SubscribeRequest): Promise<any> {
-  return new Promise((resolve) => {
-    const startStream = async () => {
-      const stream = await client.subscribe();
-      logger.info("Waiting for new pool...");
-
-      const closeStream = () => {
-        try {
-          stream.end?.();
-          stream.destroy?.();
-        } catch (_) {}
-      };
-
-      const restartStream = () => {
-        closeStream();
-        logger.warn("Stream interrupted. Restarting...");
-        setTimeout(startStream, 1000); // restart after 1s
-      };
-
-      stream.on("error", (err: any) => {
-        logger.warn(`Stream error ignored: ${err?.message || err}`);
-        restartStream();
-      });
-
-      stream.on("end", () => {
-        logger.warn("Stream ended. Restarting...");
-        restartStream();
-      });
-
-      stream.on("close", () => {
-        logger.warn("Stream closed. Restarting...");
-        restartStream();
-      });
-
-      stream.on("data", (data) => {
-        try {
-          if (!data?.transaction) return;
-
-          const txn = TXN_FORMATTER.formTransactionFromJson(data.transaction, Date.now());
-          const decoded = decodeRaydiumTxn(txn);
-
-          const poolIx = decoded.find(
-            (ix) => ix.name === "raydiumInitialize" || ix.name === "raydiumInitialize2"
-          );
-
-          if (!poolIx) return;
-
-          const info = JSON.stringify(poolIx.args);
-          const parseInfo = JSON.parse(info);
-          const poolData = {
-            solVault: parseInfo.pool_pc_token_account,
-            tokenVault: parseInfo.pool_coin_token_account,
-            solAddress: parseInfo.pc_mint_address,
-            tokenAddress: parseInfo.coin_mint_address,
-            lpMint: parseInfo.lp_mint_address,
-            pool: parseInfo.amm,
-            dev_wallet: parseInfo.user_wallet,
-            openTime: parseInfo.openTime,
-            startTime: new Date(parseInfo.openTime * 1000),
-            initialBalanceSOL: parseInfo.initPcAmount / 1e9,
-            initialBalanceToken: parseInfo.initCoinAmount,
-            tx: txn.transaction.signatures[0],
-            shyft: `https://translator.shyft.to/tx/${txn.transaction.signatures[0]}`,
-            solscan: `https://solscan.io/tx/${txn.transaction.signatures[0]}?cluster=mainnet`,
-          };
-
-          closeStream();
-          resolve(poolData);
-        } catch (err) {
-          logger.warn("Error handling transaction, ignored:", err);
-        }
-      });
-
-      // Send subscribe request
-      stream.write(args, (err: any) => {
-        if (err) {
-          logger.warn("Stream write error ignored:", err);
-          restartStream();
-        }
-      });
-    };
-
-    startStream(); // initial call
-  });
-}
-
 async function main() {
   const newPool = await waitForNewPool(client, req);
   console.log("New Pool Found:", newPool);
+  process.exit(0); // Close the script once it's done
 }
 
 main().catch(logger.error);

@@ -11,7 +11,7 @@ import { sell } from "./src/raydium/sell_helper";
 import { buy } from "./src/raydium/buy_helper";
 import { getSPLTokenBalance, checkBalanceByAddress } from "./src/helpers/check_balance";
 import { subscribeToPriceMcap } from "./src/raydium/real_time_token_price_marketcap_streaming/monitor";
-import { client, req, getNextNewPool } from "./src/raydium/monitor_new_pools/stream_pools";
+import { client, req, waitForNewPool } from "./src/raydium/monitor_new_pools/stream_pools";
 import logger from './logger';
 import { getLatestTokenUpdate, getTradeBySignature } from "./logger";
 import { token } from "@project-serum/anchor/dist/cjs/utils";
@@ -97,7 +97,7 @@ async function main() {
             // const initialBalanceSOL = await checkBalanceByAddress(wallet.publicKey.toString(), connection);
             logger.info(`Initial WSOL balance: ${initialBalanceWSOL}`);
 
-            const pool = await getNextNewPool(client, req);
+            const pool = await waitForNewPool(client, req);
             logger.info(`New LP found: ${JSON.stringify(pool, null, 2)}`);
 
             let solReserves: number = 0;
