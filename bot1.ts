@@ -41,15 +41,13 @@ export async function checkLatestPool(): Promise<{
                     const now = new Date();
 
                     // Check if the timestamp is within the last 1 minute
-                    if (now.getTime() - timestampDate.getTime() <= 60 * 1000) {
-                        if (timestamp !== lastKnownTimestamp) {
-                            lastKnownTimestamp = timestamp;
-                            const argsJson = JSON.parse(argsMatch[1]);
-                            clearInterval(interval);
-                            resolve({ timestamp, args: argsJson });
-                        }
+                    const elapsedTime = Math.floor((now.getTime() - timestampDate.getTime()) / 1000);
+                    if (now.getTime() - timestampDate.getTime() <= 60 * 1000 && timestamp !== lastKnownTimestamp) {
+                        lastKnownTimestamp = timestamp;
+                        const argsJson = JSON.parse(argsMatch[1]);
+                        clearInterval(interval);
+                        resolve({ timestamp, args: argsJson });
                     } else {
-                        const elapsedTime = Math.floor((now.getTime() - timestampDate.getTime()) / 1000);
                         console.warn(`Waiting for fresh pool data... Elapsed time: ${elapsedTime} seconds`);
                     }
                 }
