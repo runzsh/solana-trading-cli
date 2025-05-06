@@ -86,7 +86,7 @@ async function handleSell(message: string, tokenAddress: string, poolID: string,
 async function handleBuy(message: string, tokenAddress: string, poolID: string, amountSol: number, wallet: any) {
     logger.info(message);
     let attempts = 0;
-    while (attempts < 3) {
+    while (attempts < 6) {
         const buy_res = await buy("buy", tokenAddress, poolID, amountSol, wallet);
         if (buy_res !== null) {
             logger.info("Trade opened successfully.");
@@ -96,7 +96,7 @@ async function handleBuy(message: string, tokenAddress: string, poolID: string, 
         logger.warn(`Buy attempt ${attempts} failed. Retrying...`);
         await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
     }
-    if (attempts === 3) {
+    if (attempts === 6) {
         logger.error("Failed to buy after 3 attempts. Moving to the next pool...");
     }
     return;
